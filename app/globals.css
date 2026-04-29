@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #080808;
+  color: #F0F0EE;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+body[data-ui="elder"] {
+  font-size: 20px;
+  line-height: 1.65;
+}
+
+body[data-ui="elder"] button,
+body[data-ui="elder"] a.btn,
+body[data-ui="elder"] input,
+body[data-ui="elder"] select,
+body[data-ui="elder"] textarea {
+  min-height: 56px;
+  font-size: 18px;
+}
+
+body[data-ui="teen"] {
+  font-size: 16px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0d0d0d; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #333; }
+
+@layer components {
+  .display { font-family: var(--font-display), "Bebas Neue", sans-serif; letter-spacing: 0.04em; }
+  .surface {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 14px;
+  }
+  .surface-2 {
+    background: #171717;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+  }
+  .accent-text { color: #C9A84C; }
+  .gold-line {
+    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    height: 1px;
+    width: 100%;
+  }
+  .input-base {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    color: #F0F0EE;
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 150ms;
+  }
+  .input-base:focus { border-color: #C9A84C; }
+}
