@@ -9,23 +9,52 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#080808",
-        surface: "#111111",
-        surface2: "#171717",
-        border: "#222222",
-        accent: "#C9A84C",
-        "accent-soft": "#C9A84C22",
-        text: "#F0F0EE",
-        muted: "#888888",
-        success: "#7BB37B",
-        danger: "#C96A6A",
+        // XS.Family palette
+        bg: "#1C1C1E",
+        surface: "#2C2C2E",
+        surface2: "#3A3A3C",
+        border: "#3A3A3C",
+        text: "#FFFFFF",
+        muted: "#8E8E93",
+        accent: "#FF6B8A",
+        success: "#4CAF50",
+        danger: "#FF3B30",
+        warning: "#FFB02E",
+
+        // Member colors
+        m_fedor: "#C9A84C",
+        m_ignat: "#4CAF50",
+        m_nikolay: "#4A90D9",
+        m_elena: "#FF6B8A",
+        m_tatyana: "#9B59B6",
+
+        // Category colors
+        c_home: "#4A90D9",
+        c_kids: "#FFB02E",
+        c_health: "#4CAF50",
+        c_shopping: "#FF6B8A",
+        c_finance: "#9B59B6",
+        c_other: "#8E8E93",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Bebas Neue", "sans-serif"],
-        mono: ["var(--font-mono)", "IBM Plex Mono", "monospace"],
+        sans: [
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 32px rgba(201,168,76,0.18)",
+        soft: "0 8px 24px rgba(0,0,0,0.35)",
+        glow: "0 0 32px rgba(255,107,138,0.25)",
+      },
+      borderRadius: {
+        xl2: "20px",
       },
     },
   },

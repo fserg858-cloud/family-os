@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardLabel } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Report {
   summary: string;
@@ -39,29 +38,31 @@ export function ReportClient({
   }
 
   return (
-    <Card>
+    <div className="surface p-4">
       <div className="flex items-center justify-between mb-3">
-        <CardLabel>AI-обзор недели</CardLabel>
-        <Button onClick={generate} disabled={busy}>
-          <Sparkles size={16} /> {report ? "Обновить" : "Сгенерировать"}
+        <span className="text-[11px] uppercase tracking-widest text-muted">AI-обзор</span>
+        <Button onClick={generate} disabled={busy} size="sm">
+          <Sparkles size={14} /> {report ? "Обновить" : "Сгенерировать"}
         </Button>
       </div>
 
       {err && (
-        <div className="text-sm text-danger border border-danger/30 bg-danger/10 px-3 py-2 rounded-lg">
+        <div className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-xl px-3 py-2 mb-3">
           {err}
         </div>
       )}
 
       {!report && !busy && (
-        <div className="text-muted text-sm">Нажми «Сгенерировать» — Claude соберёт обзор по событиям недели.</div>
+        <div className="text-sm text-muted">
+          Нажми «Сгенерировать» — Claude соберёт обзор по событиям недели.
+        </div>
       )}
 
       {busy && <div className="text-muted">Думаю...</div>}
 
       {report && (
-        <div className="text-text whitespace-pre-wrap leading-relaxed">{report.summary}</div>
+        <div className="text-[14px] whitespace-pre-wrap leading-relaxed">{report.summary}</div>
       )}
-    </Card>
+    </div>
   );
 }

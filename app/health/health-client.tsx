@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardLabel } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Plus, Droplet } from "lucide-react";
 import { todayISO } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type Kind = "nutrition" | "sleep" | "workout" | "metric" | "water";
 
@@ -17,12 +17,12 @@ interface Log {
   created_at: string;
 }
 
-const TABS: { key: Kind; label: string }[] = [
-  { key: "nutrition", label: "Питание" },
-  { key: "sleep", label: "Сон" },
-  { key: "workout", label: "Тренировки" },
-  { key: "metric", label: "Метрики" },
-  { key: "water", label: "Вода" },
+const TABS: { key: Kind; label: string; icon: string }[] = [
+  { key: "nutrition", label: "Питание", icon: "🍽️" },
+  { key: "sleep", label: "Сон", icon: "🌙" },
+  { key: "workout", label: "Тренировки", icon: "🏋️" },
+  { key: "metric", label: "Метрики", icon: "📊" },
+  { key: "water", label: "Вода", icon: "💧" },
 ];
 
 export function HealthClient({ initial }: { initial: Log[] }) {
@@ -45,17 +45,17 @@ export function HealthClient({ initial }: { initial: Log[] }) {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 mb-4">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-xl text-sm border ${
-              tab === t.key
-                ? "bg-accent text-bg border-accent"
-                : "border-border text-text hover:border-accent"
-            }`}
+            className={cn(
+              "shrink-0 px-3 py-2 rounded-xl text-sm flex items-center gap-2",
+              tab === t.key ? "bg-accent text-white" : "bg-surface",
+            )}
           >
+            <span>{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -67,21 +67,19 @@ export function HealthClient({ initial }: { initial: Log[] }) {
       {tab === "metric" && <MetricForm onAdd={addLog} />}
       {tab === "water" && <WaterForm onAdd={addLog} todayLogs={filtered} />}
 
-      <div className="mt-8">
-        <CardLabel>История</CardLabel>
-        <div className="mt-3 space-y-2">
-          {filtered.length === 0 && <Card className="text-muted text-sm">Пока пусто</Card>}
-          {filtered.map((l) => (
-            <Card key={l.id}>
-              <div className="text-xs text-muted">{l.occurred_on}</div>
-              <pre className="text-sm text-text mt-1 whitespace-pre-wrap font-mono">
-                {Object.entries(l.payload || {})
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join("\n")}
-              </pre>
-            </Card>
-          ))}
-        </div>
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6 mb-3">
+        История
+      </h3>
+      <div className="space-y-2">
+        {filtered.length === 0 && <div className="surface p-4 text-center text-sm text-muted">Пусто</div>}
+        {filtered.map((l) => (
+          <div key={l.id} className="surface p-3">
+            <div className="text-[10px] text-muted">{l.occurred_on}</div>
+            <pre className="text-[13px] mt-1 whitespace-pre-wrap font-mono text-text/90">
+              {Object.entries(l.payload || {}).map(([k, v]) => `${k}: ${v}`).join("\n")}
+            </pre>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -93,53 +91,52 @@ function NutritionForm({ onAdd }: { onAdd: (p: any) => void }) {
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
-
   return (
-    <Card>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!meal) return;
-          onAdd({
-            meal,
-            kcal: Number(kcal) || 0,
-            protein: Number(protein) || 0,
-            fat: Number(fat) || 0,
-            carbs: Number(carbs) || 0,
-          });
-          setMeal("");
-          setKcal("");
-          setProtein("");
-          setFat("");
-          setCarbs("");
-        }}
-        className="space-y-3"
-      >
+    <form
+      className="surface p-4 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!meal) return;
+        onAdd({
+          meal,
+          kcal: Number(kcal) || 0,
+          protein: Number(protein) || 0,
+          fat: Number(fat) || 0,
+          carbs: Number(carbs) || 0,
+        });
+        setMeal("");
+        setKcal("");
+        setProtein("");
+        setFat("");
+        setCarbs("");
+      }}
+    >
+      <div>
+        <Label>Что съел/выпил</Label>
+        <Input value={meal} onChange={(e) => setMeal(e.target.value)} placeholder="Овсянка с орехами" />
+      </div>
+      <div className="grid grid-cols-4 gap-2">
         <div>
-          <Label>Что съел/выпил</Label>
-          <Input value={meal} onChange={(e) => setMeal(e.target.value)} placeholder="Овсянка с орехами" />
+          <Label>Ккал</Label>
+          <Input type="number" value={kcal} onChange={(e) => setKcal(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <Label>Ккал</Label>
-            <Input type="number" value={kcal} onChange={(e) => setKcal(e.target.value)} />
-          </div>
-          <div>
-            <Label>Белки, г</Label>
-            <Input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} />
-          </div>
-          <div>
-            <Label>Жиры, г</Label>
-            <Input type="number" value={fat} onChange={(e) => setFat(e.target.value)} />
-          </div>
-          <div>
-            <Label>Углеводы, г</Label>
-            <Input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
-          </div>
+        <div>
+          <Label>Б</Label>
+          <Input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} />
         </div>
-        <Button type="submit"><Plus size={16} /> Записать</Button>
-      </form>
-    </Card>
+        <div>
+          <Label>Ж</Label>
+          <Input type="number" value={fat} onChange={(e) => setFat(e.target.value)} />
+        </div>
+        <div>
+          <Label>У</Label>
+          <Input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+        </div>
+      </div>
+      <Button type="submit" block>
+        <Plus size={14} /> Записать
+      </Button>
+    </form>
   );
 }
 
@@ -147,29 +144,29 @@ function SleepForm({ onAdd }: { onAdd: (p: any) => void }) {
   const [hours, setHours] = useState("");
   const [quality, setQuality] = useState("4");
   return (
-    <Card>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!hours) return;
-          onAdd({ hours: Number(hours), quality: Number(quality) });
-          setHours("");
-        }}
-        className="space-y-3"
-      >
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Сколько спал, ч</Label>
-            <Input type="number" step="0.1" value={hours} onChange={(e) => setHours(e.target.value)} />
-          </div>
-          <div>
-            <Label>Качество (1–5)</Label>
-            <Input type="number" min={1} max={5} value={quality} onChange={(e) => setQuality(e.target.value)} />
-          </div>
+    <form
+      className="surface p-4 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!hours) return;
+        onAdd({ hours: Number(hours), quality: Number(quality) });
+        setHours("");
+      }}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Часов</Label>
+          <Input type="number" step="0.1" value={hours} onChange={(e) => setHours(e.target.value)} />
         </div>
-        <Button type="submit"><Plus size={16} /> Записать</Button>
-      </form>
-    </Card>
+        <div>
+          <Label>Качество (1–5)</Label>
+          <Input type="number" min={1} max={5} value={quality} onChange={(e) => setQuality(e.target.value)} />
+        </div>
+      </div>
+      <Button type="submit" block>
+        <Plus size={14} /> Записать
+      </Button>
+    </form>
   );
 }
 
@@ -178,34 +175,34 @@ function WorkoutForm({ onAdd }: { onAdd: (p: any) => void }) {
   const [minutes, setMinutes] = useState("");
   const [intensity, setIntensity] = useState("3");
   return (
-    <Card>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!type) return;
-          onAdd({ type, minutes: Number(minutes) || 0, intensity: Number(intensity) });
-          setType("");
-          setMinutes("");
-        }}
-        className="space-y-3"
-      >
+    <form
+      className="surface p-4 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!type) return;
+        onAdd({ type, minutes: Number(minutes) || 0, intensity: Number(intensity) });
+        setType("");
+        setMinutes("");
+      }}
+    >
+      <div>
+        <Label>Тип</Label>
+        <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="Силовая / бег / йога" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label>Тип тренировки</Label>
-          <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="Силовая / бег / йога" />
+          <Label>Минут</Label>
+          <Input type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Минут</Label>
-            <Input type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
-          </div>
-          <div>
-            <Label>Интенсивность (1–5)</Label>
-            <Input type="number" min={1} max={5} value={intensity} onChange={(e) => setIntensity(e.target.value)} />
-          </div>
+        <div>
+          <Label>Интенс. (1–5)</Label>
+          <Input type="number" min={1} max={5} value={intensity} onChange={(e) => setIntensity(e.target.value)} />
         </div>
-        <Button type="submit"><Plus size={16} /> Записать</Button>
-      </form>
-    </Card>
+      </div>
+      <Button type="submit" block>
+        <Plus size={14} /> Записать
+      </Button>
+    </form>
   );
 }
 
@@ -214,39 +211,39 @@ function MetricForm({ onAdd }: { onAdd: (p: any) => void }) {
   const [bp, setBp] = useState("");
   const [hr, setHr] = useState("");
   return (
-    <Card>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const payload: any = {};
-          if (weight) payload.weight_kg = Number(weight);
-          if (bp) payload.blood_pressure = bp;
-          if (hr) payload.resting_hr = Number(hr);
-          if (Object.keys(payload).length === 0) return;
-          onAdd(payload);
-          setWeight("");
-          setBp("");
-          setHr("");
-        }}
-        className="space-y-3"
-      >
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <Label>Вес, кг</Label>
-            <Input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} />
-          </div>
-          <div>
-            <Label>Давление</Label>
-            <Input value={bp} onChange={(e) => setBp(e.target.value)} placeholder="120/80" />
-          </div>
-          <div>
-            <Label>Пульс покоя</Label>
-            <Input type="number" value={hr} onChange={(e) => setHr(e.target.value)} />
-          </div>
+    <form
+      className="surface p-4 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const payload: any = {};
+        if (weight) payload.weight_kg = Number(weight);
+        if (bp) payload.blood_pressure = bp;
+        if (hr) payload.resting_hr = Number(hr);
+        if (Object.keys(payload).length === 0) return;
+        onAdd(payload);
+        setWeight("");
+        setBp("");
+        setHr("");
+      }}
+    >
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label>Вес</Label>
+          <Input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} />
         </div>
-        <Button type="submit"><Plus size={16} /> Записать</Button>
-      </form>
-    </Card>
+        <div>
+          <Label>Давление</Label>
+          <Input value={bp} onChange={(e) => setBp(e.target.value)} placeholder="120/80" />
+        </div>
+        <div>
+          <Label>Пульс</Label>
+          <Input type="number" value={hr} onChange={(e) => setHr(e.target.value)} />
+        </div>
+      </div>
+      <Button type="submit" block>
+        <Plus size={14} /> Записать
+      </Button>
+    </form>
   );
 }
 
@@ -262,14 +259,13 @@ function WaterForm({
     .reduce((acc, l) => acc + (Number(l.payload?.ml) || 0), 0);
   const target = 2500;
   const pct = Math.min(100, (totalMl / target) * 100);
-
   return (
-    <Card>
-      <div className="flex items-center gap-4 mb-4">
+    <div className="surface p-4 space-y-3">
+      <div className="flex items-center gap-3">
         <Droplet size={28} className="text-accent" />
         <div className="flex-1">
-          <div className="text-text display text-3xl">
-            {totalMl} <span className="text-muted text-base">/ {target} мл</span>
+          <div className="text-2xl font-semibold">
+            {totalMl} <span className="text-muted text-sm">/ {target} мл</span>
           </div>
           <div className="h-2 rounded-full bg-surface2 overflow-hidden mt-2">
             <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
@@ -279,10 +275,10 @@ function WaterForm({
       <div className="grid grid-cols-3 gap-2">
         {[250, 500, 750].map((v) => (
           <Button key={v} variant="outline" onClick={() => onAdd({ ml: v })}>
-            +{v} мл
+            +{v}
           </Button>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

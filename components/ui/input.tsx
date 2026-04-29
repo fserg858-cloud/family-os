@@ -14,5 +14,5 @@ export function Select({ className, ...rest }: SelectHTMLAttributes<HTMLSelectEl
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <span className="text-xs uppercase tracking-[0.2em] text-muted block mb-2">{children}</span>;
+  return <span className="text-[11px] uppercase tracking-[0.16em] text-muted block mb-2 font-medium">{children}</span>;
 }

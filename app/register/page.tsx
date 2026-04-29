@@ -6,8 +6,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 import { MEMBER_LIST, MEMBERS, type MemberKey } from "@/lib/members";
+import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,9 +28,7 @@ export default function RegisterPage() {
     const { data, error: signUpErr } = await sb.auth.signUp({
       email,
       password,
-      options: {
-        data: { member_key: memberKey, display_name: m.display_name },
-      },
+      options: { data: { member_key: memberKey, display_name: m.display_name } },
     });
 
     if (signUpErr) {
@@ -49,9 +48,9 @@ export default function RegisterPage() {
         ui_profile: m.ui_profile,
       });
       if (insertErr) {
-        setError(insertErr.message);
-        setLoading(false);
-        return;
+        // профиль не вставился (нет миграции / RLS) — это не блокер для редиректа
+        // requireUser восстановит из user_metadata
+        console.warn("profile insert failed:", insertErr.message);
       }
     }
 
@@ -65,30 +64,48 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-bg px-5 py-10">
       <motion.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="surface w-full max-w-md p-8"
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-sm"
       >
-        <div className="display text-4xl text-accent tracking-[0.2em] text-center">
-          FAMILY OS
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Кто ты в семье?</h1>
+          <p className="text-sm text-muted mt-2">Выбери свой аватар</p>
         </div>
-        <div className="text-xs text-muted text-center mt-2 mb-8">Регистрация</div>
-        <div className="gold-line mb-8" />
+
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          {MEMBER_LIST.map((m) => {
+            const active = memberKey === m.key;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setMemberKey(m.key)}
+                className={cn(
+                  "flex flex-col items-center gap-2 py-4 rounded-2xl transition-colors",
+                  active ? "bg-surface ring-2" : "bg-surface/60",
+                )}
+                style={{ ...(active ? { boxShadow: `0 0 0 2px ${m.color}` } : {}) }}
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-3xl border"
+                  style={{ background: m.color + "33", borderColor: m.color, color: m.color }}
+                >
+                  {m.emoji}
+                </div>
+                <div className="text-[12px] font-medium" style={{ color: active ? m.color : "#FFF" }}>
+                  {m.display_name}
+                </div>
+                <div className="text-[10px] text-muted -mt-1">{m.role}</div>
+              </button>
+            );
+          })}
+        </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <Label>Кто ты в семье?</Label>
-            <Select value={memberKey} onChange={(e) => setMemberKey(e.target.value as MemberKey)}>
-              {MEMBER_LIST.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.display_name} — {m.role}
-                </option>
-              ))}
-            </Select>
-          </div>
           <div>
             <Label>Email</Label>
             <Input
@@ -112,19 +129,19 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="text-sm text-danger border border-danger/30 bg-danger/10 px-3 py-2 rounded-lg">
+            <div className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-xl px-3 py-2">
               {error}
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button type="submit" disabled={loading} block size="lg">
             {loading ? "Создание..." : "Создать аккаунт"}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-muted">
           Уже есть аккаунт?{" "}
-          <Link href="/login" className="accent-text hover:underline">
+          <Link href="/login" className="text-accent">
             Войти
           </Link>
         </div>

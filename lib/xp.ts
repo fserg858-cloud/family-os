@@ -4,7 +4,7 @@ export const XP_REWARDS = {
   habit_log: 10,
   reflection: 20,
   goal_complete: 50,
-  task_complete: 15,
+  task_complete: 10,
   challenge_step: 25,
 } as const;
 
@@ -17,4 +17,11 @@ export function xpProgress(xp: number) {
   const base = (lvl - 1) * XP_PER_LEVEL;
   const into = xp - base;
   return { level: lvl, into, max: XP_PER_LEVEL, percent: Math.min(100, (into / XP_PER_LEVEL) * 100) };
+}
+
+export function streakCopy(days: number) {
+  if (days <= 0) return "Нет серии";
+  if (days === 1) return "1 день подряд";
+  if (days < 5) return `${days} дня подряд`;
+  return `${days} дней подряд`;
 }

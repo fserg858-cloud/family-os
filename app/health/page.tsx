@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
-import { CardLabel } from "@/components/ui/card";
 import { HealthClient } from "./health-client";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +17,8 @@ export default async function HealthPage() {
 
   return (
     <AppShell user={user}>
-      <header className="mb-8">
-        <CardLabel>Здоровье</CardLabel>
-        <h1 className="display text-5xl text-accent tracking-[0.05em] mt-1">ТЕЛО</h1>
-        <p className="text-muted text-sm mt-2">Питание, сон, тренировки, метрики, вода.</p>
+      <header className="pt-2 pb-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Здоровье</h1>
       </header>
       <HealthClient initial={logs ?? []} />
     </AppShell>

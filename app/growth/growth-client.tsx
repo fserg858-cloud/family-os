@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardLabel } from "@/components/ui/card";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Plus } from "lucide-react";
 
 interface Content {
   id: string;
@@ -70,96 +69,91 @@ export function GrowthClient({
 
   return (
     <>
-      <section className="mb-8">
-        <CardLabel>Добавить компетенцию</CardLabel>
-        <Card className="mt-3">
-          <form onSubmit={addCompetency} className="grid md:grid-cols-3 gap-3 items-end">
-            <div>
-              <Label>Название</Label>
-              <Input
-                value={compName}
-                onChange={(e) => setCompName(e.target.value)}
-                placeholder="Английский"
-              />
-            </div>
-            <div>
-              <Label>Категория</Label>
-              <Input
-                value={compCat}
-                onChange={(e) => setCompCat(e.target.value)}
-                placeholder="Языки / Спорт / IT"
-              />
-            </div>
-            <Button type="submit"><Plus size={16} /> Добавить</Button>
-          </form>
-          {existingComps.length > 0 && (
-            <div className="text-xs text-muted mt-3">Уже есть: {existingComps.join(", ")}</div>
-          )}
-        </Card>
-      </section>
-
-      <section>
-        <CardLabel>Учебные материалы</CardLabel>
-        <Card className="mt-3">
-          <form onSubmit={addContent} className="grid md:grid-cols-4 gap-3 items-end">
-            <div className="md:col-span-2">
-              <Label>Название</Label>
-              <Input
-                value={item.title}
-                onChange={(e) => setItem({ ...item, title: e.target.value })}
-                placeholder="Why we sleep — M.Walker"
-              />
-            </div>
-            <div>
-              <Label>Источник</Label>
-              <Input
-                value={item.source}
-                onChange={(e) => setItem({ ...item, source: e.target.value })}
-                placeholder="Книга / Курс / Видео"
-              />
-            </div>
-            <div>
-              <Label>Ссылка</Label>
-              <Input
-                value={item.url}
-                onChange={(e) => setItem({ ...item, url: e.target.value })}
-                placeholder="https://"
-              />
-            </div>
-            <Button type="submit" className="md:col-span-4"><Plus size={16} /> Добавить</Button>
-          </form>
-        </Card>
-
-        <div className="mt-4 space-y-2">
-          {content.length === 0 && <Card className="text-muted text-sm">Пока пусто</Card>}
-          {content.map((c) => (
-            <Card key={c.id}>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-text">{c.title}</div>
-                  <div className="text-xs text-muted">
-                    {c.source} {c.url ? "· " : ""}
-                    {c.url && (
-                      <a href={c.url} target="_blank" className="accent-text hover:underline">
-                        ссылка
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <Select
-                  value={c.status}
-                  onChange={(e) => setStatus(c.id, e.target.value as Content["status"])}
-                  className="!w-32"
-                >
-                  <option value="queued">в очереди</option>
-                  <option value="active">в работе</option>
-                  <option value="done">завершено</option>
-                </Select>
-              </div>
-            </Card>
-          ))}
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
+        Добавить компетенцию
+      </h3>
+      <form onSubmit={addCompetency} className="surface p-4 space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Название</Label>
+            <Input value={compName} onChange={(e) => setCompName(e.target.value)} placeholder="Английский" />
+          </div>
+          <div>
+            <Label>Категория</Label>
+            <Input value={compCat} onChange={(e) => setCompCat(e.target.value)} placeholder="Языки" />
+          </div>
         </div>
-      </section>
+        <Button type="submit" block>
+          <Plus size={14} /> Добавить
+        </Button>
+        {existingComps.length > 0 && (
+          <div className="text-[11px] text-muted">Уже есть: {existingComps.join(", ")}</div>
+        )}
+      </form>
+
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
+        Учебные материалы
+      </h3>
+      <form onSubmit={addContent} className="surface p-4 space-y-3">
+        <div>
+          <Label>Название</Label>
+          <Input
+            value={item.title}
+            onChange={(e) => setItem({ ...item, title: e.target.value })}
+            placeholder="Why we sleep — M.Walker"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label>Источник</Label>
+            <Input
+              value={item.source}
+              onChange={(e) => setItem({ ...item, source: e.target.value })}
+              placeholder="Книга / Курс"
+            />
+          </div>
+          <div>
+            <Label>Ссылка</Label>
+            <Input
+              value={item.url}
+              onChange={(e) => setItem({ ...item, url: e.target.value })}
+              placeholder="https://"
+            />
+          </div>
+        </div>
+        <Button type="submit" block>
+          <Plus size={14} /> Добавить
+        </Button>
+      </form>
+
+      <div className="mt-4 space-y-2">
+        {content.length === 0 && <div className="surface p-4 text-center text-sm text-muted">Пусто</div>}
+        {content.map((c) => (
+          <div key={c.id} className="surface p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px]">{c.title}</div>
+              <div className="text-[11px] text-muted">
+                {c.source}
+                {c.url ? " · " : ""}
+                {c.url && (
+                  <a href={c.url} target="_blank" className="text-accent">
+                    ссылка
+                  </a>
+                )}
+              </div>
+            </div>
+            <Select
+              value={c.status}
+              onChange={(e) => setStatus(c.id, e.target.value as Content["status"])}
+              className="!w-32 !py-2 text-xs"
+            >
+              <option value="queued">в очереди</option>
+              <option value="active">в работе</option>
+              <option value="done">завершено</option>
+            </Select>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

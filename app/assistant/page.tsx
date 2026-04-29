@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
-import { CardLabel } from "@/components/ui/card";
 import { AssistantClient } from "./assistant-client";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +17,10 @@ export default async function AssistantPage() {
 
   return (
     <AppShell user={user}>
-      <header className="mb-6">
-        <CardLabel>AI Ассистент</CardLabel>
-        <h1 className="display text-5xl text-accent tracking-[0.05em] mt-1">ОРАКУЛ</h1>
-        <p className="text-muted text-sm mt-2">
-          Любой ответ приходит в формате: Факт → Механизм → Что значит для тебя →
-          Следующий шаг → Результат через 7/30/90 дней.
+      <header className="pt-2 pb-3">
+        <h1 className="text-2xl font-semibold tracking-tight">AI ассистент</h1>
+        <p className="text-xs text-muted mt-1">
+          Факт → Механизм → Что значит → Шаг → 7/30/90
         </p>
       </header>
       <AssistantClient history={history ?? []} memberName={user.display_name} />

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, Trash2 } from "lucide-react";
-import { Card, CardLabel } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -29,7 +28,6 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
   const router = useRouter();
   const [goals, setGoals] = useState<Goal[]>(initial);
   const [adding, setAdding] = useState(false);
-  const [pending, start] = useTransition();
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -61,7 +59,7 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id, progress, status: progress >= 100 ? "done" : "active" }),
     });
-    if (progress >= 100) start(() => router.refresh());
+    if (progress >= 100) router.refresh();
   }
 
   async function remove(id: string) {
@@ -79,9 +77,9 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <Button onClick={() => setAdding((v) => !v)} variant={adding ? "ghost" : "primary"}>
-          <Plus size={16} /> {adding ? "Отмена" : "Новая цель"}
+      <div className="flex justify-end mb-3">
+        <Button onClick={() => setAdding((v) => !v)} variant={adding ? "ghost" : "primary"} size="sm">
+          <Plus size={14} /> {adding ? "Отмена" : "Новая цель"}
         </Button>
       </div>
 
@@ -92,7 +90,7 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             onSubmit={create}
-            className="surface p-5 mb-6 space-y-4 overflow-hidden"
+            className="surface p-4 mb-4 space-y-3 overflow-hidden"
           >
             <div>
               <Label>Цель</Label>
@@ -100,7 +98,7 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Например: Подтянуться 10 раз"
+                placeholder="Подтянуться 10 раз"
               />
             </div>
             <div>
@@ -120,10 +118,10 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Зачем эта цель и как ты поймёшь, что она достигнута"
+                placeholder="Зачем и как пойму, что достигнута"
               />
             </div>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" block>
               Сохранить
             </Button>
           </motion.form>
@@ -133,23 +131,23 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
       <div className="space-y-6">
         {(Object.keys(HORIZON_LABEL) as Goal["horizon"][]).map((h) => (
           <section key={h}>
-            <CardLabel>{HORIZON_LABEL[h]}</CardLabel>
-            <div className="mt-3 space-y-3">
-              {grouped[h].length === 0 && (
-                <div className="text-muted text-sm">Нет целей</div>
-              )}
+            <div className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-2">
+              {HORIZON_LABEL[h]}
+            </div>
+            <div className="space-y-2">
+              {grouped[h].length === 0 && <div className="text-muted text-sm">Нет целей</div>}
               {grouped[h].map((g) => (
-                <Card key={g.id}>
-                  <div className="flex items-start gap-4">
+                <div key={g.id} className="surface p-3">
+                  <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-text">{g.title}</span>
+                        <span className="text-[15px]">{g.title}</span>
                         {g.status === "done" && <Check size={16} className="text-success" />}
                       </div>
                       {g.description && (
-                        <div className="text-sm text-muted mt-1">{g.description}</div>
+                        <div className="text-[11px] text-muted mt-1 line-clamp-2">{g.description}</div>
                       )}
-                      <div className="mt-3 flex items-center gap-3">
+                      <div className="mt-2 flex items-center gap-3">
                         <Progress value={Number(g.progress)} className="flex-1" />
                         <input
                           type="range"
@@ -158,22 +156,22 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
                           step={5}
                           value={Number(g.progress)}
                           onChange={(e) => updateProgress(g.id, Number(e.target.value))}
-                          className="w-32 accent-accent"
+                          className="w-24 accent-accent"
                         />
-                        <span className="text-sm text-muted w-10 text-right">
+                        <span className="text-xs text-muted w-10 text-right">
                           {Math.round(Number(g.progress))}%
                         </span>
                       </div>
                     </div>
                     <button
                       onClick={() => remove(g.id)}
-                      className="text-muted hover:text-danger p-2"
+                      className="text-muted hover:text-danger p-1"
                       aria-label="Удалить"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </section>

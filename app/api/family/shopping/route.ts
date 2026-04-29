@@ -10,10 +10,10 @@ export async function POST(req: NextRequest) {
   } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { item, qty } = await req.json();
+  const { item, qty, category } = await req.json();
   const { data, error } = await sb
     .from("shopping_list")
-    .insert({ added_by: user.id, item, qty: qty || null })
+    .insert({ added_by: user.id, item, qty: qty || null, category: category ?? "other" })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

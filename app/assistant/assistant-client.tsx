@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Send, Sparkles } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 
@@ -14,10 +14,10 @@ interface Msg {
 }
 
 const STARTERS = [
-  "Что съесть сегодня для энергии до вечера?",
-  "Как улучшить сон, если ложусь после 1?",
-  "С чего начать силовую тренировку дома?",
-  "Что выпить вечером, чтобы не было тревоги?",
+  "Что съесть сегодня для энергии?",
+  "Как улучшить сон?",
+  "С чего начать тренировку?",
+  "Что снизит тревогу вечером?",
 ];
 
 export function AssistantClient({ history, memberName }: { history: Msg[]; memberName: string }) {
@@ -50,13 +50,15 @@ export function AssistantClient({ history, memberName }: { history: Msg[]; membe
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Ошибка");
-      const reply: Msg = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.reply,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((m) => [...m, reply]);
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.reply,
+          created_at: new Date().toISOString(),
+        },
+      ]);
     } catch (e: any) {
       setMessages((m) => [
         ...m,
@@ -73,19 +75,17 @@ export function AssistantClient({ history, memberName }: { history: Msg[]; membe
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div ref={scrollRef} className="surface p-5 max-h-[60vh] overflow-y-auto space-y-4">
+    <div className="flex flex-col gap-3">
+      <div ref={scrollRef} className="surface p-4 max-h-[60vh] overflow-y-auto space-y-3">
         {messages.length === 0 && (
           <div>
-            <div className="text-muted text-sm mb-3">
-              Привет, {memberName}. Спроси что-нибудь — или попробуй один из стартеров:
-            </div>
+            <div className="text-sm text-muted mb-3">Привет, {memberName}. Спроси что-нибудь:</div>
             <div className="flex flex-wrap gap-2">
               {STARTERS.map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
-                  className="surface-2 px-3 py-2 text-sm hover:border-accent hover:text-accent transition-colors"
+                  className="px-3 py-2 text-xs rounded-full bg-surface2 hover:bg-accent/20"
                 >
                   {s}
                 </button>
@@ -95,66 +95,60 @@ export function AssistantClient({ history, memberName }: { history: Msg[]; membe
         )}
 
         {messages.map((m) => (
-          <div
+          <motion.div
             key={m.id}
-            className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {m.role === "assistant" && (
-              <div className="shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center">
+              <div className="shrink-0 w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center">
                 <Sparkles size={14} />
               </div>
             )}
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                m.role === "user"
-                  ? "bg-accent text-bg"
-                  : "bg-surface2 text-text border border-border"
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
+                m.role === "user" ? "bg-accent text-white" : "bg-surface2 text-text"
               }`}
             >
               {m.content}
             </div>
-          </div>
+          </motion.div>
         ))}
 
         {busy && (
-          <div className="flex gap-3">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center">
+          <div className="flex gap-2">
+            <div className="shrink-0 w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center">
               <Sparkles size={14} />
             </div>
-            <div className="bg-surface2 border border-border rounded-2xl px-4 py-3 text-muted text-sm">
-              Думаю...
-            </div>
+            <div className="bg-surface2 rounded-2xl px-4 py-2.5 text-muted text-sm">Думаю...</div>
           </div>
         )}
       </div>
 
-      <Card>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(input);
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+        className="flex gap-2 items-end"
+      >
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send(input);
+            }
           }}
-          className="flex gap-3 items-end"
-        >
-          <div className="flex-1">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send(input);
-                }
-              }}
-              placeholder="Напиши вопрос — Enter, чтобы отправить"
-              className="min-h-[64px]"
-            />
-          </div>
-          <Button type="submit" disabled={busy || !input.trim()}>
-            <Send size={16} />
-          </Button>
-        </form>
-      </Card>
+          placeholder="Спроси меня…"
+          className="min-h-[56px]"
+        />
+        <Button type="submit" disabled={busy || !input.trim()}>
+          <Send size={16} />
+        </Button>
+      </form>
     </div>
   );
 }

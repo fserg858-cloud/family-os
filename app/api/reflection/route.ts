@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAnthropic, CLAUDE_MODEL, buildSystemPrompt } from "@/lib/claude";
+import { getAnthropic, buildSystemPrompt } from "@/lib/claude";
 import type { MemberKey } from "@/lib/members";
 import { todayISO } from "@/lib/utils";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
 
 export const runtime = "nodejs";
+
+const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 export async function POST(req: NextRequest) {
   const sb = createClient();
@@ -23,8 +25,9 @@ export async function POST(req: NextRequest) {
 
   const anthropic = getAnthropic();
   const system = buildSystemPrompt(profile.member_key as MemberKey);
+
   const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
+    model: HAIKU_MODEL,
     max_tokens: 700,
     system,
     messages: [

@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardLabel } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label } from "@/components/ui/input";
-import { Sparkles } from "lucide-react";
 
 interface Reflection {
   id: string;
@@ -41,65 +40,49 @@ export function ReflectionClient({ existing }: { existing: Reflection | null }) 
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardLabel>Настроение сегодня</CardLabel>
-        <div className="flex gap-2 mt-3">
+    <div className="space-y-3">
+      <div className="surface p-4">
+        <Label>Настроение</Label>
+        <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               onClick={() => setMood(n)}
-              className={`flex-1 py-3 rounded-xl border text-2xl ${
-                mood === n
-                  ? "bg-accent text-bg border-accent"
-                  : "border-border hover:border-accent"
+              className={`flex-1 py-3 rounded-xl text-2xl ${
+                mood === n ? "bg-accent" : "bg-surface2"
               }`}
             >
               {["😞", "😕", "😐", "🙂", "😊"][n - 1]}
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      <Card>
+      <div className="surface p-4">
         <Label>Главная победа дня</Label>
-        <Textarea
-          value={win}
-          onChange={(e) => setWin(e.target.value)}
-          placeholder="Что я сделал лучше, чем вчера"
-        />
-      </Card>
-
-      <Card>
+        <Textarea value={win} onChange={(e) => setWin(e.target.value)} placeholder="Что я сделал лучше" />
+      </div>
+      <div className="surface p-4">
         <Label>Главный урок</Label>
-        <Textarea
-          value={lesson}
-          onChange={(e) => setLesson(e.target.value)}
-          placeholder="Что я понял про себя или ситуацию"
-        />
-      </Card>
+        <Textarea value={lesson} onChange={(e) => setLesson(e.target.value)} placeholder="Что я понял" />
+      </div>
+      <div className="surface p-4">
+        <Label>Шаг на завтра</Label>
+        <Textarea value={next} onChange={(e) => setNext(e.target.value)} placeholder="Конкретное действие" />
+      </div>
 
-      <Card>
-        <Label>Один шаг на завтра</Label>
-        <Textarea
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          placeholder="Конкретное действие, не абстракция"
-        />
-      </Card>
-
-      <Button onClick={save} disabled={busy} className="w-full">
-        {busy ? "Сохраняю и думаю..." : "Сохранить и получить инсайт"}
+      <Button onClick={save} disabled={busy} block size="lg">
+        {busy ? "Сохраняю..." : "Сохранить и получить инсайт"}
       </Button>
 
       {insight && (
-        <Card>
+        <div className="surface p-4">
           <div className="flex items-center gap-2 text-accent mb-2">
-            <Sparkles size={16} />
-            <span className="text-xs uppercase tracking-[0.2em]">AI инсайт</span>
+            <Sparkles size={14} />
+            <span className="text-[11px] uppercase tracking-[0.16em]">AI инсайт</span>
           </div>
-          <div className="text-text whitespace-pre-wrap leading-relaxed">{insight}</div>
-        </Card>
+          <div className="text-[13px] whitespace-pre-wrap leading-relaxed">{insight}</div>
+        </div>
       )}
     </div>
   );
