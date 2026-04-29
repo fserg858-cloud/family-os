@@ -50,8 +50,8 @@ export async function requireUser(): Promise<AppUser> {
 }
 
 export async function getCurrentUser(): Promise<AppUser | null> {
-  const supabase = createClient();
   try {
+    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
