@@ -6,8 +6,10 @@ import { ProgressRing } from "@/components/progress-ring";
 import { MemberAvatar } from "@/components/member-avatar";
 import { SectionHeader } from "@/components/ui/card";
 import { TaskCardServer } from "./task-card-server";
+import { ProactiveSlot } from "./proactive-slot";
 import { todayISO } from "@/lib/utils";
 import { getMember } from "@/lib/members";
+import type { ProactiveMessage as ProactiveMessageT } from "@/lib/agent/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,7 @@ export default async function DashboardPage() {
     { data: myTasks },
     { data: events },
     { data: notifs },
+    { data: proactive },
   ] = await Promise.all([
     supabase.from("users").select("id, display_name, member_key, level, xp"),
     supabase
@@ -38,6 +41,15 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false })
       .limit(8),
     supabase.from("notifications").select("id").eq("user_id", user.id).eq("read", false),
+    supabase
+      .from("agent_proactive_messages")
+      .select("*")
+      .eq("user_id", user.id)
+      .is("read_at", null)
+      .eq("dismissed", false)
+      .order("priority", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const todayTasks = (myTasks ?? []).filter((t: any) => {
@@ -53,6 +65,11 @@ export default async function DashboardPage() {
 
   return (
     <AppShell user={user} unread={(notifs ?? []).length}>
+      {proactive && (
+        <div className="pt-2">
+          <ProactiveSlot initial={proactive as ProactiveMessageT} />
+        </div>
+      )}
       <section className="pt-2 pb-6 flex flex-col items-center">
         <p className="text-sm text-muted mb-3">{new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
         <ProgressRing value={pct} size={180} stroke={14}>

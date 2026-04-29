@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
+import { recordEvent } from "@/lib/agent/learn";
 
 export const runtime = "nodejs";
 
@@ -107,6 +108,14 @@ export async function PATCH(req: NextRequest) {
       actor_id: user.id,
       kind: "task_completed",
       payload: { title: task.title, xp: task.points ?? task.reward_xp ?? 10 },
+    });
+
+    recordEvent(user.id, "task_completed", {
+      task_title: task.title,
+      category: task.category,
+      priority: task.priority,
+      points: task.points ?? task.reward_xp,
+      time_of_day: new Date().getHours(),
     });
 
     // Уведомить создателя, если это не он сам

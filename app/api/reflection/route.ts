@@ -4,6 +4,7 @@ import { getAnthropic, buildSystemPrompt } from "@/lib/claude";
 import type { MemberKey } from "@/lib/members";
 import { todayISO } from "@/lib/utils";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
+import { recordEvent } from "@/lib/agent/learn";
 
 export const runtime = "nodejs";
 
@@ -80,6 +81,14 @@ export async function POST(req: NextRequest) {
     },
     { onConflict: "user_id,occurred_on" } as any,
   );
+
+  recordEvent(user.id, "reflection_submitted", {
+    win,
+    lesson,
+    next_step,
+    mood,
+    date: today,
+  });
 
   return NextResponse.json({ ai_insight, xp: newXp });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { todayISO } from "@/lib/utils";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
+import { recordEvent } from "@/lib/agent/learn";
 
 export const runtime = "nodejs";
 
@@ -66,6 +67,15 @@ export async function POST(req: NextRequest) {
       actor_id: user.id,
       kind: "habit_logged",
       payload: { title: habit.title, streak: newStreak },
+    });
+
+    // обучение агента (fire-and-forget)
+    recordEvent(user.id, "habit_done", {
+      habit_id,
+      habit_title: habit.title,
+      streak: newStreak,
+      time_of_day: new Date().getHours(),
+      day_of_week: new Date().getDay(),
     });
 
     return NextResponse.json({ ok: true, streak: newStreak });

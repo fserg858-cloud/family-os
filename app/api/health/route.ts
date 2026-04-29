@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { recordEvent } from "@/lib/agent/learn";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  recordEvent(user.id, "health_logged", {
+    type: kind,
+    value: payload,
+    date: occurred_on,
+  });
+
   return NextResponse.json(data);
 }
 

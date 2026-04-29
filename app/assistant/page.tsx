@@ -5,25 +5,42 @@ import { AssistantClient } from "./assistant-client";
 
 export const dynamic = "force-dynamic";
 
+interface Msg {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export default async function AssistantPage() {
   const user = await requireUser();
   const supabase = createClient();
-  const { data: history } = await supabase
+  const { data: latest } = await supabase
     .from("ai_conversations")
-    .select("*")
+    .select("messages")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(40);
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let history: Msg[] = [];
+  if (latest && Array.isArray((latest as any).messages)) {
+    history = ((latest as any).messages as any[])
+      .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m: any) => ({ role: m.role, content: m.content }));
+  } else {
+    const { data: rows } = await supabase
+      .from("ai_conversations")
+      .select("role, content")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(40);
+    history = ((rows ?? []) as any[])
+      .filter((r) => r.role === "user" || r.role === "assistant")
+      .map((r) => ({ role: r.role as "user" | "assistant", content: r.content as string }));
+  }
 
   return (
     <AppShell user={user}>
-      <header className="pt-2 pb-3">
-        <h1 className="text-2xl font-semibold tracking-tight">AI ассистент</h1>
-        <p className="text-xs text-muted mt-1">
-          Факт → Механизм → Что значит → Шаг → 7/30/90
-        </p>
-      </header>
-      <AssistantClient history={history ?? []} memberName={user.display_name} />
+      <AssistantClient initialHistory={history} memberName={user.display_name} />
     </AppShell>
   );
 }

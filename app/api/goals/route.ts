@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
+import { recordEvent } from "@/lib/agent/learn";
 
 export const runtime = "nodejs";
 
@@ -73,6 +74,13 @@ export async function PATCH(req: NextRequest) {
       actor_id: user.id,
       kind: "goal_completed",
       payload: { title: wasDoneBefore.data?.title },
+    });
+
+    recordEvent(user.id, "goal_completed", {
+      goal_title: wasDoneBefore.data?.title,
+      type: data.horizon,
+      progress: Number(progress),
+      target: Number(data.target ?? 100),
     });
   }
 

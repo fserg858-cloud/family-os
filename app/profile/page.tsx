@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Sparkles, Repeat, Target, HeartPulse, Moon, BookOpen, ShoppingCart } from "lucide-react";
+import { LogOut, Sparkles, Repeat, Target, HeartPulse, Moon, BookOpen, ShoppingCart, Brain } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
@@ -114,6 +114,7 @@ export default async function ProfilePage() {
       </h3>
       <div className="grid grid-cols-2 gap-3">
         <NavCard href="/assistant" Icon={Sparkles} label="AI ассистент" />
+        <NavCard href="/memory" Icon={Brain} label="Память агента" />
         <NavCard href="/habits" Icon={Repeat} label="Привычки" />
         <NavCard href="/goals" Icon={Target} label="Цели" />
         <NavCard href="/health" Icon={HeartPulse} label="Здоровье" />
