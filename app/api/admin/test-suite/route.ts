@@ -338,26 +338,37 @@ export async function GET(req: NextRequest) {
     steps.push(r.step);
   }
 
-  // CRON endpoints — server-side fetch с правильным Bearer
+  // CRON endpoints — server-side fetch с правильным Bearer.
+  // Когда skip_ai=1 — дёргаем только context-cache (он не зовёт LLM).
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || `${url.protocol}//${url.host}`;
   const cronSecret = process.env.CRON_SECRET?.trim();
+  const cronPaths = url.searchParams.get("skip_ai") === "1"
+    ? ["/api/agent/context-cache"]
+    : ["/api/agent/context-cache", "/api/agent/proactive", "/api/agent/family-intelligence"];
   if (cronSecret) {
-    for (const path of ["/api/agent/context-cache", "/api/agent/proactive", "/api/agent/family-intelligence"]) {
+    for (const path of cronPaths) {
       const r = await step(`cron ${path}`, async () => {
-        const resp = await fetch(`${baseUrl}${path}`, {
-          headers: { authorization: `Bearer ${cronSecret}` },
-        });
-        const txt = await resp.text();
-        let body: any = txt;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 30000);
         try {
-          body = JSON.parse(txt);
-        } catch {
-          /* keep as string */
+          const resp = await fetch(`${baseUrl}${path}`, {
+            headers: { authorization: `Bearer ${cronSecret}` },
+            signal: ctrl.signal,
+          });
+          const txt = await resp.text();
+          let body: any = txt;
+          try {
+            body = JSON.parse(txt);
+          } catch {
+            /* keep */
+          }
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}: ${typeof body === "string" ? body.slice(0, 200) : JSON.stringify(body).slice(0, 200)}`);
+          }
+          return body;
+        } finally {
+          clearTimeout(t);
         }
-        if (!resp.ok) {
-          throw new Error(`HTTP ${resp.status}: ${typeof body === "string" ? body.slice(0, 200) : JSON.stringify(body).slice(0, 200)}`);
-        }
-        return body;
       });
       steps.push(r.step);
     }
