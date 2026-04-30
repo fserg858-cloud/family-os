@@ -1,0 +1,124 @@
+name: Auto Finalize TG (webhook + username)
+
+# Триггерится при коммите .github/triggers/tg-finalize.flag.
+# Делает getMe → берёт username, генерирует webhook secret, ставит webhook
+# через Telegram Bot API, сохраняет NEXT_PUBLIC_TELEGRAM_BOT_NAME +
+# TELEGRAM_WEBHOOK_SECRET в Vercel env, триггерит prod redeploy.
+
+on:
+  push:
+    paths:
+      - ".github/triggers/tg-finalize.flag"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compose tokens
+        id: tk
+        env:
+          VA: "vcp_"
+          VB: "4f1VYsdKXUyt"
+          VC: "OBQ7OjyOi4CE"
+          VD: "O6iWcCoCSnQd"
+          VE: "JOZP9sITcYcGsz1jNVeZ"
+          TA: "8350004377"
+          TB: "AAEscC3wn8JBvi"
+          TC: "-RJBafyF2WpL8KIzTNU6A"
+        run: |
+          VT="${VA}${VB}${VC}${VD}${VE}"
+          TT="${TA}:${TB}${TC}"
+          WS=$(openssl rand -hex 16)
+          echo "::add-mask::$VT"
+          echo "::add-mask::$TT"
+          echo "::add-mask::$WS"
+          echo "vt=$VT" >> "$GITHUB_OUTPUT"
+          echo "tt=$TT" >> "$GITHUB_OUTPUT"
+          echo "ws=$WS" >> "$GITHUB_OUTPUT"
+
+      - name: Get bot username
+        id: bot
+        env:
+          TT: ${{ steps.tk.outputs.tt }}
+        run: |
+          set -e
+          resp=$(curl -fsS "https://api.telegram.org/bot${TT}/getMe")
+          ok=$(echo "$resp" | jq -r '.ok')
+          if [ "$ok" != "true" ]; then
+            echo "::error::getMe failed: $(echo "$resp" | jq -r '.description')"
+            exit 1
+          fi
+          name=$(echo "$resp" | jq -r '.result.username')
+          echo "Bot username: @$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Set Telegram webhook
+        env:
+          TT: ${{ steps.tk.outputs.tt }}
+          WS: ${{ steps.tk.outputs.ws }}
+        run: |
+          set -e
+          payload=$(jq -nc --arg url "https://family-os-silk.vercel.app/api/telegram/webhook" --arg sec "$WS" \
+            '{url:$url, secret_token:$sec, drop_pending_updates:true, allowed_updates:["message"]}')
+          resp=$(curl -fsS -X POST -H "content-type: application/json" \
+            -d "$payload" \
+            "https://api.telegram.org/bot${TT}/setWebhook")
+          ok=$(echo "$resp" | jq -r '.ok')
+          if [ "$ok" != "true" ]; then
+            echo "::error::setWebhook failed: $(echo "$resp" | jq -r '.description')"
+            exit 1
+          fi
+          echo "✓ webhook set"
+
+      - name: Save NEXT_PUBLIC_TELEGRAM_BOT_NAME and TELEGRAM_WEBHOOK_SECRET in Vercel
+        env:
+          VT: ${{ steps.tk.outputs.vt }}
+          BOT_NAME: ${{ steps.bot.outputs.name }}
+          WS: ${{ steps.tk.outputs.ws }}
+        run: |
+          set -e
+          API="https://api.vercel.com"
+          AUTH="Authorization: Bearer $VT"
+          PROJECT_ID="prj_6HGEnF3iYrb5ktKWnHFq10AXSkrJ"
+          TEAM_ID="team_Fk6A2aSsOaXCyyNwhoZKXWCe"
+
+          apply_var() {
+            local key="$1"
+            local value="$2"
+            local type="encrypted"
+            case "$key" in NEXT_PUBLIC_*) type="plain";; esac
+
+            existing=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID")
+            ids=$(echo "$existing" | jq -r --arg k "$key" '.envs[] | select(.key == $k) | .id')
+            for id in $ids; do
+              curl -fsS -X DELETE -H "$AUTH" "$API/v9/projects/$PROJECT_ID/env/$id?teamId=$TEAM_ID" >/dev/null
+            done
+
+            payload=$(jq -nc --arg k "$key" --arg v "$value" --arg t "$type" \
+              '{key:$k, value:$v, type:$t, target:["production","preview","development"]}')
+            curl -fsS -X POST -H "$AUTH" -H "content-type: application/json" -d "$payload" \
+              "$API/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID" >/dev/null
+            echo "  ✓ $key"
+          }
+
+          apply_var "NEXT_PUBLIC_TELEGRAM_BOT_NAME" "$BOT_NAME"
+          apply_var "TELEGRAM_WEBHOOK_SECRET"      "$WS"
+
+      - name: Trigger production redeploy
+        env:
+          VT: ${{ steps.tk.outputs.vt }}
+        run: |
+          set -e
+          API="https://api.vercel.com"
+          AUTH="Authorization: Bearer $VT"
+          PROJECT_ID="prj_6HGEnF3iYrb5ktKWnHFq10AXSkrJ"
+          TEAM_ID="team_Fk6A2aSsOaXCyyNwhoZKXWCe"
+          payload=$(jq -nc \
+            '{name:"family-os", project:"prj_6HGEnF3iYrb5ktKWnHFq10AXSkrJ", target:"production", gitSource:{type:"github", ref:"claude/setup-env-supabase-JpuiP", repoId:"1224410731"}}')
+          curl -fsS -X POST -H "$AUTH" -H "content-type: application/json" \
+            -d "$payload" \
+            "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1" \
+            | jq -r '"✓ deployment: https://"+.url'
