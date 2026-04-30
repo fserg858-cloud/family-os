@@ -9,6 +9,8 @@ import { TaskCardServer } from "./task-card-server";
 import { ProactiveSlot } from "./proactive-slot";
 import { todayISO } from "@/lib/utils";
 import { getMember } from "@/lib/members";
+import { getServerLocale } from "@/lib/preferences";
+import { t, type TKey } from "@/lib/i18n";
 import type { ProactiveMessage as ProactiveMessageT } from "@/lib/agent/types";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +64,9 @@ export default async function DashboardPage() {
   const pct = totalToday ? (doneToday / totalToday) * 100 : 0;
 
   const memberMap = new Map((members ?? []).map((m: any) => [m.id, m]));
+  const locale = getServerLocale();
+  const tr = (k: TKey) => t(k, locale);
+  const dateLocale = locale === "en" ? "en-US" : "ru-RU";
 
   return (
     <AppShell user={user} unread={(notifs ?? []).length}>
@@ -71,29 +76,29 @@ export default async function DashboardPage() {
         </div>
       )}
       <section className="pt-2 pb-6 flex flex-col items-center">
-        <p className="text-sm text-muted mb-3">{new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <p className="text-sm text-muted mb-3">{new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}</p>
         <ProgressRing value={pct} size={180} stroke={14}>
           <div className="text-4xl font-semibold">{doneToday}<span className="text-muted text-2xl">/{totalToday || 0}</span></div>
-          <div className="text-xs text-muted uppercase tracking-widest mt-1">сегодня</div>
+          <div className="text-xs text-muted uppercase tracking-widest mt-1">{tr("dash.today")}</div>
         </ProgressRing>
       </section>
 
       <div className="grid grid-cols-3 gap-2 -mx-1 mb-2">
         <Link href="/calendar" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
           <span className="text-xl">📅</span>
-          <span className="text-[11px] text-muted">Календарь</span>
+          <span className="text-[11px] text-muted">{tr("dash.shortcut.calendar")}</span>
         </Link>
         <Link href="/menu" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
           <span className="text-xl">🍽️</span>
-          <span className="text-[11px] text-muted">Меню недели</span>
+          <span className="text-[11px] text-muted">{tr("dash.shortcut.menu")}</span>
         </Link>
         <Link href="/shopping" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
           <span className="text-xl">🛒</span>
-          <span className="text-[11px] text-muted">Покупки</span>
+          <span className="text-[11px] text-muted">{tr("dash.shortcut.shopping")}</span>
         </Link>
       </div>
 
-      <SectionHeader title="Семья" action={<Link href="/family" className="text-xs text-accent">Все →</Link>} />
+      <SectionHeader title={tr("dash.family")} action={<Link href="/family" className="text-xs text-accent">{tr("dash.see_all")}</Link>} />
       <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5">
         {(members ?? []).map((m: any) => {
           const def = getMember(m.member_key);
@@ -107,11 +112,11 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      <SectionHeader title="Задачи на сегодня" action={<Link href="/tasks" className="text-xs text-accent">Все →</Link>} />
+      <SectionHeader title={tr("dash.today_tasks")} action={<Link href="/tasks" className="text-xs text-accent">{tr("dash.see_all")}</Link>} />
       <div className="space-y-2">
         {todayTasks.length === 0 && (
           <div className="surface p-4 text-sm text-muted text-center">
-            Свободный день. Можно <Link href="/tasks/create" className="text-accent">добавить задачу</Link>.
+            {tr("dash.free_day")} <Link href="/tasks/create" className="text-accent">{tr("dash.add_task_inline")}</Link>.
           </div>
         )}
         {todayTasks.slice(0, 5).map((t: any) => {
@@ -126,9 +131,9 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      <SectionHeader title="События" action={<Link href="/events" className="text-xs text-accent">История →</Link>} />
+      <SectionHeader title={tr("dash.events")} action={<Link href="/events" className="text-xs text-accent">{tr("dash.history")}</Link>} />
       <div className="space-y-2">
-        {(events ?? []).length === 0 && <div className="surface p-4 text-sm text-muted text-center">Сегодня тихо</div>}
+        {(events ?? []).length === 0 && <div className="surface p-4 text-sm text-muted text-center">{tr("dash.quiet")}</div>}
         {(events ?? []).map((e: any) => {
           const actor: any = e.actor_id ? memberMap.get(e.actor_id) : null;
           const def = getMember(actor?.member_key);

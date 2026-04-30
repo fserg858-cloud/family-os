@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Sparkles, Repeat, Target, HeartPulse, Moon, BookOpen, ShoppingCart, Brain } from "lucide-react";
+import { Sparkles, Repeat, Target, HeartPulse, Moon, BookOpen, ShoppingCart, Brain } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
@@ -11,6 +11,9 @@ import { TaskCardServer } from "../dashboard/task-card-server";
 import { getMember } from "@/lib/members";
 import { xpProgress, streakCopy } from "@/lib/xp";
 import { todayISO } from "@/lib/utils";
+import { ThemeToggle, LocaleSwitch } from "@/components/settings-controls";
+import { getServerLocale } from "@/lib/preferences";
+import { t, type TKey } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +48,8 @@ export default async function ProfilePage() {
 
   const def = getMember(user.member_key);
   const xp = xpProgress(user.xp);
+  const locale = getServerLocale();
+  const tr = (k: TKey) => t(k, locale);
 
   return (
     <AppShell user={user}>
@@ -63,7 +68,7 @@ export default async function ProfilePage() {
           <div className="text-xs text-muted">{def?.role}</div>
           <div className="mt-4 w-full max-w-[260px]">
             <div className="flex items-baseline justify-between text-[11px] text-muted">
-              <span>Уровень {xp.level}</span>
+              <span>{tr("profile.level")} {xp.level}</span>
               <span>{xp.into} / {xp.max}</span>
             </div>
             <Progress value={xp.percent} className="mt-1.5" color={def?.color ?? "#FF6B8A"} />
@@ -71,19 +76,27 @@ export default async function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 mt-6">
-          <Stat label="Задач сегодня" value={(doneTasks ?? []).length} />
-          <Stat label="Серия" value={streakCopy(user.streak_days)} small />
-          <Stat label="XP всего" value={user.xp} />
+          <Stat label={tr("profile.tasks_today")} value={(doneTasks ?? []).length} />
+          <Stat label={tr("profile.streak")} value={streakCopy(user.streak_days)} small />
+          <Stat label={tr("profile.xp_total")} value={user.xp} />
         </div>
       </section>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
-        Достижения
+        {tr("settings.title")}
+      </h3>
+      <div className="space-y-2">
+        <ThemeToggle />
+        <LocaleSwitch />
+      </div>
+
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
+        {tr("profile.achievements")}
       </h3>
       <div className="space-y-2">
         {(achievements ?? []).length === 0 && (
           <div className="surface p-4 text-center text-muted text-sm">
-            Пусто. Закрывай задачи и привычки — здесь появятся.
+            {tr("profile.no_achievements")}
           </div>
         )}
         {(achievements ?? []).map((a: any) => (
@@ -97,11 +110,11 @@ export default async function ProfilePage() {
       </div>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
-        Задачи на сегодня
+        {tr("profile.today_tasks")}
       </h3>
       <div className="space-y-2">
         {(tasks ?? []).length === 0 ? (
-          <div className="surface p-4 text-center text-muted text-sm">Свободно</div>
+          <div className="surface p-4 text-center text-muted text-sm">{tr("profile.free")}</div>
         ) : (
           (tasks ?? []).map((t: any) => (
             <TaskCardServer key={t.id} task={t} memberKey={user.member_key} />
@@ -110,18 +123,18 @@ export default async function ProfilePage() {
       </div>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
-        Разделы
+        {tr("profile.sections")}
       </h3>
       <div className="grid grid-cols-2 gap-3">
-        <NavCard href="/assistant" Icon={Sparkles} label="AI ассистент" />
-        <NavCard href="/memory" Icon={Brain} label="Память агента" />
-        <NavCard href="/habits" Icon={Repeat} label="Привычки" />
-        <NavCard href="/goals" Icon={Target} label="Цели" />
-        <NavCard href="/health" Icon={HeartPulse} label="Здоровье" />
-        <NavCard href="/reflection" Icon={Moon} label="Рефлексия" />
-        <NavCard href="/growth" Icon={BookOpen} label="Развитие" />
-        <NavCard href="/shopping" Icon={ShoppingCart} label="Покупки" />
-        <NavCard href="/report" Icon={Sparkles} label="Отчёт недели" />
+        <NavCard href="/assistant" Icon={Sparkles} label={tr("profile.section.assistant")} />
+        <NavCard href="/memory" Icon={Brain} label={tr("profile.section.memory")} />
+        <NavCard href="/habits" Icon={Repeat} label={tr("profile.section.habits")} />
+        <NavCard href="/goals" Icon={Target} label={tr("profile.section.goals")} />
+        <NavCard href="/health" Icon={HeartPulse} label={tr("profile.section.health")} />
+        <NavCard href="/reflection" Icon={Moon} label={tr("profile.section.reflection")} />
+        <NavCard href="/growth" Icon={BookOpen} label={tr("profile.section.growth")} />
+        <NavCard href="/shopping" Icon={ShoppingCart} label={tr("profile.section.shopping")} />
+        <NavCard href="/report" Icon={Sparkles} label={tr("profile.section.report")} />
       </div>
 
       <div className="mt-8">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
 import { MemberAvatar } from "./member-avatar";
+import { I18nText } from "./top-bar-i18n";
 import type { AppUser } from "@/lib/auth";
 
 export function AppShell({
@@ -25,14 +26,14 @@ export function AppShell({
             <Link href="/profile" className="flex items-center gap-3">
               <MemberAvatar memberKey={user.member_key} size="sm" />
               <div className="leading-tight">
-                <div className="text-[11px] text-muted">Привет</div>
+                <div className="text-[11px] text-muted"><I18nText k="top.greeting" /></div>
                 <div className="text-sm font-medium">{user.display_name}</div>
               </div>
             </Link>
             <Link
               href="/notifications"
               className="relative w-10 h-10 rounded-full bg-surface flex items-center justify-center"
-              aria-label="Уведомления"
+              aria-label="Notifications"
             >
               <Bell size={18} />
               {unread > 0 && (

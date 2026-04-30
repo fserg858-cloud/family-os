@@ -9,24 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // XS.Family palette
-        bg: "#1C1C1E",
-        surface: "#2C2C2E",
-        surface2: "#3A3A3C",
-        border: "#3A3A3C",
-        text: "#FFFFFF",
-        muted: "#8E8E93",
-        accent: "#FF6B8A",
+        // Theme-aware semantic palette (driven by CSS vars in globals.css)
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        surface2: "rgb(var(--surface2) / <alpha-value>)",
+        border: "rgb(var(--border) / <alpha-value>)",
+        text: "rgb(var(--text) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
         success: "#4CAF50",
         danger: "#FF3B30",
         warning: "#FFB02E",
 
-        // Member colors
+        // Member colors (constant across themes)
         m_fedor: "#C9A84C",
         m_ignat: "#4CAF50",
         m_nikolay: "#4A90D9",
         m_elena: "#FF6B8A",
         m_tatyana: "#9B59B6",
+        m_polina: "#FF8FB1",
 
         // Category colors
         c_home: "#4A90D9",

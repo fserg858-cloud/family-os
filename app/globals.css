@@ -2,14 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Тёмная (по-умолчанию). Значения цветов в формате "R G B" — Tailwind подставит alpha. */
+:root, [data-theme="dark"] {
+  --bg: 28 28 30;          /* #1C1C1E */
+  --surface: 44 44 46;     /* #2C2C2E */
+  --surface2: 58 58 60;    /* #3A3A3C */
+  --border: 58 58 60;      /* #3A3A3C */
+  --text: 255 255 255;
+  --muted: 142 142 147;    /* #8E8E93 */
+  --accent: 255 107 138;   /* #FF6B8A */
   color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: 245 245 247;       /* #F5F5F7 */
+  --surface: 255 255 255;  /* #FFFFFF */
+  --surface2: 242 242 247; /* #F2F2F7 */
+  --border: 209 209 214;   /* #D1D1D6 */
+  --text: 28 28 30;        /* #1C1C1E */
+  --muted: 110 110 115;    /* #6E6E73 */
+  --accent: 255 75 110;    /* #FF4B6E — чуть глубже на светлом фоне */
+  color-scheme: light;
+}
+
+:root {
   --safe-bottom: env(safe-area-inset-bottom);
 }
 
 html, body {
-  background-color: #1C1C1E;
-  color: #FFFFFF;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -36,24 +58,24 @@ body[data-ui="teen"] {
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3A3A3C; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #4a4a4c; }
+::-webkit-scrollbar-thumb { background: rgb(var(--surface2)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--border)); }
 
 @layer components {
   .surface {
-    background: #2C2C2E;
-    border: 1px solid #3A3A3C;
+    background: rgb(var(--surface));
+    border: 1px solid rgb(var(--border));
     border-radius: 16px;
   }
   .surface-2 {
-    background: #3A3A3C;
-    border: 1px solid #48484A;
+    background: rgb(var(--surface2));
+    border: 1px solid rgb(var(--border));
     border-radius: 16px;
   }
   .input-base {
-    background: #1C1C1E;
-    border: 1px solid #3A3A3C;
-    color: #FFFFFF;
+    background: rgb(var(--bg));
+    border: 1px solid rgb(var(--border));
+    color: rgb(var(--text));
     border-radius: 12px;
     padding: 14px 16px;
     width: 100%;
@@ -61,11 +83,11 @@ body[data-ui="teen"] {
     transition: border-color 150ms;
     font-size: 16px;
   }
-  .input-base:focus { border-color: #FF6B8A; }
-  .input-base::placeholder { color: #8E8E93; }
+  .input-base:focus { border-color: rgb(var(--accent)); }
+  .input-base::placeholder { color: rgb(var(--muted)); }
 
   .btn-primary {
-    background: #FF6B8A;
+    background: rgb(var(--accent));
     color: #FFFFFF;
     border-radius: 14px;
     padding: 14px 22px;
@@ -77,8 +99,8 @@ body[data-ui="teen"] {
   .btn-primary:disabled { opacity: 0.5; }
 
   .btn-ghost {
-    background: #3A3A3C;
-    color: #FFFFFF;
+    background: rgb(var(--surface2));
+    color: rgb(var(--text));
     border-radius: 14px;
     padding: 14px 22px;
     font-size: 16px;
