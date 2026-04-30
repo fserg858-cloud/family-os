@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `Собери Family Report недели для ${profile.display_name}. Вот сырые события:\n${summary || "(нет данных)"}\n\nОтвет в стандартном формате (Факт → Механизм → Что значит → Шаг → 7/30/90).`,
+          content: `Собери Family Report недели для ${profile.display_name}. Сырые события за неделю:\n${summary || "(нет данных)"}\n\nФормат:\n1) WHAT THE DATA SHOWS — 2-3 факта (без обобщений)\n2) ONE INSIGHT — главный паттерн недели, чем он опасен/полезен\n3) [ACTION] — одно конкретное действие на следующую неделю\n\nЕсли данных мало — скажи прямо что не хватает, не выдумывай.`,
         },
       ],
     });
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     messages: [
       {
         role: "user",
-        content: `Утро ${today}. Сделай мне краткий брифинг и 3 приоритета на день.\nКонтекст:\n${ctx}`,
+        content: `Утро ${today}. Дай брифинг по three-block framework (MORNING / WORK / RECOVERY) и 3 приоритета на сегодня.\nКонтекст:\n${ctx}\n\nФормат:\n- 1 предложение: что показывают данные сейчас\n- 3 приоритета: каждый привязан к конкретному блоку дня\n- [ACTION] — что сделать в ближайшие 30 минут чтобы начать день правильно`,
       },
     ],
   });
