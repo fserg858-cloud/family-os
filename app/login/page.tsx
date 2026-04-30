@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { TelegramLogin, type TelegramUser } from "@/components/telegram-login";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +33,32 @@ export default function LoginPage() {
     router.refresh();
   }
 
+  async function onTelegramAuth(user: TelegramUser) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tg_data: user }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "telegram auth failed");
+
+      const sb = createClient();
+      const r = await sb.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      if (r.error) throw new Error(r.error.message);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-5">
       <motion.div
@@ -38,13 +67,22 @@ export default function LoginPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm"
       >
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <div className="inline-block w-20 h-20 rounded-3xl bg-accent/15 mb-5 flex items-center justify-center text-4xl">
             🏠
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">XS.Family</h1>
           <p className="text-sm text-muted mt-2">Семейный хаб для всех</p>
         </div>
+
+        {botName && (
+          <div className="mb-6">
+            <TelegramLogin botName={botName} onAuth={onTelegramAuth} />
+            <div className="text-center text-xs text-muted mt-3">
+              Или войди через email
+            </div>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

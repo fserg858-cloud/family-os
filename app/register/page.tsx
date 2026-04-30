@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { MEMBER_LIST, MEMBERS, type MemberKey } from "@/lib/members";
 import { cn } from "@/lib/utils";
+import { TelegramLogin, type TelegramUser } from "@/components/telegram-login";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function RegisterPage() {
   const [memberKey, setMemberKey] = useState<MemberKey>("fedor");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,8 +51,6 @@ export default function RegisterPage() {
         ui_profile: m.ui_profile,
       });
       if (insertErr) {
-        // профиль не вставился (нет миграции / RLS) — это не блокер для редиректа
-        // requireUser восстановит из user_metadata
         console.warn("profile insert failed:", insertErr.message);
       }
     }
@@ -60,6 +61,32 @@ export default function RegisterPage() {
       router.refresh();
     } else {
       router.push("/login?confirm=1");
+    }
+  }
+
+  async function onTelegramAuth(user: TelegramUser) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/telegram", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tg_data: user, member_key: memberKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "telegram auth failed");
+
+      const sb = createClient();
+      const r = await sb.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      if (r.error) throw new Error(r.error.message);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+      setLoading(false);
     }
   }
 
@@ -104,6 +131,15 @@ export default function RegisterPage() {
             );
           })}
         </div>
+
+        {botName && (
+          <div className="mb-6">
+            <TelegramLogin botName={botName} onAuth={onTelegramAuth} />
+            <div className="text-center text-xs text-muted mt-3">
+              Или зарегистрируйся через email
+            </div>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

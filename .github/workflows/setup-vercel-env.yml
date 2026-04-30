@@ -38,6 +38,14 @@ on:
         required: true
         type: string
         default: "family-os-cron-2026"
+      telegram_bot_token:
+        description: "TELEGRAM_BOT_TOKEN (от @BotFather, необязательно)"
+        required: false
+        type: string
+      telegram_bot_name:
+        description: "NEXT_PUBLIC_TELEGRAM_BOT_NAME (username бота без @)"
+        required: false
+        type: string
       project_id:
         description: "Vercel Project ID"
         required: true
@@ -71,6 +79,8 @@ jobs:
       V_ANTHROPIC:  ${{ inputs.anthropic_api_key }}
       V_APP_URL:    ${{ inputs.next_public_app_url }}
       V_CRON:       ${{ inputs.cron_secret }}
+      V_TG_TOKEN:   ${{ inputs.telegram_bot_token }}
+      V_TG_NAME:    ${{ inputs.telegram_bot_name }}
     steps:
       - name: Mask all secret values
         shell: bash
@@ -80,6 +90,7 @@ jobs:
           echo "::add-mask::$V_SROLE"
           echo "::add-mask::$V_ANTHROPIC"
           echo "::add-mask::$V_CRON"
+          if [ -n "$V_TG_TOKEN" ]; then echo "::add-mask::$V_TG_TOKEN"; fi
 
       - name: Apply env vars to Vercel
         shell: bash
@@ -133,6 +144,8 @@ jobs:
           apply_var "ANTHROPIC_API_KEY"             "$V_ANTHROPIC"
           apply_var "NEXT_PUBLIC_APP_URL"           "$V_APP_URL"
           apply_var "CRON_SECRET"                   "$V_CRON"
+          apply_var "TELEGRAM_BOT_TOKEN"            "$V_TG_TOKEN"
+          apply_var "NEXT_PUBLIC_TELEGRAM_BOT_NAME" "$V_TG_NAME"
 
           echo ""
           echo "=== verification ==="
