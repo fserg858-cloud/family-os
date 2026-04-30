@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       env_block:
-        description: "Многострочный .env блок (KEY=VALUE на каждой строке)"
+        description: "Многострочный .env блок (KEY=VALUE на каждой строке, ВСЕ 6 строк)"
         required: true
         type: string
       project_id:
@@ -26,6 +26,11 @@ on:
         required: true
         type: string
         default: "team_Fk6A2aSsOaXCyyNwhoZKXWCe"
+      branch:
+        description: "Branch для prod deploy (промоут HEAD ветки в production)"
+        required: true
+        type: string
+        default: "claude/setup-env-supabase-JpuiP"
 
 permissions:
   contents: read
@@ -37,20 +42,31 @@ jobs:
       VERCEL_TOKEN: ${{ inputs.vercel_token }}
       PROJECT_ID:   ${{ inputs.project_id }}
       TEAM_ID:      ${{ inputs.team_id }}
+      BRANCH:       ${{ inputs.branch }}
       ENV_BLOCK:    ${{ inputs.env_block }}
     steps:
       - name: Mask token and values
         shell: bash
         run: |
           echo "::add-mask::$VERCEL_TOKEN"
+          count=0
           while IFS= read -r line; do
             line="${line%$'\r'}"
             case "$line" in ""|"#"*) continue;; esac
+            key="${line%%=*}"
             value="${line#*=}"
             value="${value%\"}"; value="${value#\"}"
             value="${value%\'}"; value="${value#\'}"
-            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+            if [ -n "$value" ]; then
+              echo "::add-mask::$value"
+              count=$((count + 1))
+              echo "  parsed: $key"
+            fi
           done <<< "$ENV_BLOCK"
+          echo "→ распознано $count переменных в env_block"
+          if [ "$count" -lt 6 ]; then
+            echo "::warning::env_block содержит только $count переменных, ожидалось 6 (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, NEXT_PUBLIC_APP_URL, CRON_SECRET)"
+          fi
 
       - name: Apply env vars to Vercel
         shell: bash
@@ -59,10 +75,12 @@ jobs:
           API="https://api.vercel.com"
           AUTH="Authorization: Bearer $VERCEL_TOKEN"
 
-          echo "fetching existing env vars..."
+          echo "→ fetching existing env vars"
           curl -fsS -H "$AUTH" \
             "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" > existing.json
+          echo "  found $(jq '.envs | length' existing.json) existing"
 
+          applied=0
           while IFS= read -r raw; do
             line="${raw%$'\r'}"
             case "$line" in ""|"#"*) continue;; esac
@@ -70,51 +88,95 @@ jobs:
             value="${line#*=}"
             value="${value%\"}"; value="${value#\"}"
             value="${value%\'}"; value="${value#\'}"
-            if [ -z "$key" ] || [ -z "$value" ]; then continue; fi
+            if [ -z "$key" ] || [ -z "$value" ]; then
+              echo "::warning::skipped malformed line"
+              continue
+            fi
 
             echo "::group::$key"
 
-            # Delete any existing entries with this key
             ids=$(jq -r --arg k "$key" '.envs[] | select(.key == $k) | .id' existing.json)
             for id in $ids; do
-              echo "  removing old $key ($id)"
+              echo "  - removing existing $id"
               curl -fsS -X DELETE -H "$AUTH" \
                 "$API/v9/projects/$PROJECT_ID/env/$id?teamId=$TEAM_ID" >/dev/null
             done
 
-            # Type: NEXT_PUBLIC_* — plain (visible in client bundle), rest — encrypted
             type="encrypted"
             case "$key" in NEXT_PUBLIC_*) type="plain";; esac
 
             payload=$(jq -nc --arg k "$key" --arg v "$value" --arg t "$type" \
               '{key:$k, value:$v, type:$t, target:["production","preview","development"]}')
-            echo "  creating $key (type=$type)"
-            curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
+            resp=$(curl -sS -w "\n%{http_code}" -X POST -H "$AUTH" -H "Content-Type: application/json" \
               -d "$payload" \
-              "$API/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID" >/dev/null
-
+              "$API/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID")
+            body=$(echo "$resp" | head -n -1)
+            code=$(echo "$resp" | tail -n 1)
+            if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+              echo "  ✓ created (type=$type)"
+              applied=$((applied + 1))
+            else
+              echo "  ✗ HTTP $code: $body"
+            fi
             echo "::endgroup::"
           done <<< "$ENV_BLOCK"
 
-          echo "all env vars applied"
+          echo ""
+          echo "=== итог: применено $applied переменных ==="
 
-      - name: Trigger production redeploy
+          # Проверяем что все 6 присутствуют
+          curl -fsS -H "$AUTH" \
+            "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" > final.json
+          for need in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY ANTHROPIC_API_KEY NEXT_PUBLIC_APP_URL CRON_SECRET; do
+            count=$(jq -r --arg k "$need" '[.envs[] | select(.key == $k)] | length' final.json)
+            if [ "$count" -gt 0 ]; then
+              echo "  ✓ $need ($count entries)"
+            else
+              echo "  ✗ $need ОТСУТСТВУЕТ"
+            fi
+          done
+
+      - name: Promote latest branch HEAD to production
         shell: bash
         run: |
           set -e
           API="https://api.vercel.com"
           AUTH="Authorization: Bearer $VERCEL_TOKEN"
 
-          last=$(curl -fsS -H "$AUTH" \
-            "$API/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&target=production&limit=1" \
-            | jq -r '.deployments[0].uid')
-          echo "rebuilding $last"
+          payload=$(jq -nc --arg branch "$BRANCH" --arg project "$PROJECT_ID" \
+            '{
+              name: "family-os",
+              project: $project,
+              target: "production",
+              gitSource: {
+                type: "github",
+                ref: $branch,
+                repoId: "1224410731"
+              }
+            }')
 
-          payload=$(jq -nc --arg id "$last" \
-            '{name:"family-os", deploymentId:$id, target:"production"}')
-          url=$(curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
+          echo "→ creating production deployment from branch=$BRANCH"
+          resp=$(curl -sS -w "\n%{http_code}" -X POST -H "$AUTH" -H "Content-Type: application/json" \
             -d "$payload" \
-            "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1" \
-            | jq -r '.url')
-          echo "new deployment: https://$url"
-          echo "follow at https://vercel.com/$TEAM_ID/family-os"
+            "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1")
+          body=$(echo "$resp" | head -n -1)
+          code=$(echo "$resp" | tail -n 1)
+          if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+            url=$(echo "$body" | jq -r '.url')
+            echo "✓ deployment: https://$url"
+          else
+            echo "::warning::HTTP $code: $body"
+            echo "→ fallback: rebuild last production deployment"
+            last=$(curl -fsS -H "$AUTH" \
+              "$API/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&target=production&limit=1" \
+              | jq -r '.deployments[0].uid')
+            payload=$(jq -nc --arg id "$last" \
+              '{name:"family-os", deploymentId:$id, target:"production"}')
+            url=$(curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
+              -d "$payload" \
+              "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1" \
+              | jq -r '.url')
+            echo "✓ rebuilt: https://$url"
+          fi
+          echo ""
+          echo "→ follow at https://vercel.com/fedors-projects-03aefc10/family-os"
