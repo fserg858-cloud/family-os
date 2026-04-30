@@ -1,21 +1,43 @@
 name: Setup Vercel env vars
 
 # Запускается вручную из вкладки Actions.
-# Принимает Vercel token и блок .env как input.
-# Маскирует секреты в логах, удаляет старые env vars,
-# создаёт новые на Production+Preview+Development и триггерит prod redeploy.
+# 6 отдельных полей вместо одного многострочного — GitHub workflow_dispatch
+# c type:string обрезает многострочный ввод.
 
 on:
   workflow_dispatch:
     inputs:
       vercel_token:
-        description: "Vercel API token (https://vercel.com/account/tokens)"
+        description: "Vercel API token (vcp_…)"
         required: true
         type: string
-      env_block:
-        description: "Многострочный .env блок (KEY=VALUE на каждой строке, ВСЕ 6 строк)"
+      next_public_supabase_url:
+        description: "NEXT_PUBLIC_SUPABASE_URL"
         required: true
         type: string
+        default: "https://kuinruimnpnxhbpdjohj.supabase.co"
+      next_public_supabase_anon_key:
+        description: "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+        required: true
+        type: string
+      supabase_service_role_key:
+        description: "SUPABASE_SERVICE_ROLE_KEY"
+        required: true
+        type: string
+      anthropic_api_key:
+        description: "ANTHROPIC_API_KEY (sk-ant-…)"
+        required: true
+        type: string
+      next_public_app_url:
+        description: "NEXT_PUBLIC_APP_URL"
+        required: true
+        type: string
+        default: "https://family-os-silk.vercel.app"
+      cron_secret:
+        description: "CRON_SECRET"
+        required: true
+        type: string
+        default: "family-os-cron-2026"
       project_id:
         description: "Vercel Project ID"
         required: true
@@ -27,7 +49,7 @@ on:
         type: string
         default: "team_Fk6A2aSsOaXCyyNwhoZKXWCe"
       branch:
-        description: "Branch для prod deploy (промоут HEAD ветки в production)"
+        description: "Branch для prod deploy"
         required: true
         type: string
         default: "claude/setup-env-supabase-JpuiP"
@@ -43,30 +65,21 @@ jobs:
       PROJECT_ID:   ${{ inputs.project_id }}
       TEAM_ID:      ${{ inputs.team_id }}
       BRANCH:       ${{ inputs.branch }}
-      ENV_BLOCK:    ${{ inputs.env_block }}
+      V_URL:        ${{ inputs.next_public_supabase_url }}
+      V_ANON:       ${{ inputs.next_public_supabase_anon_key }}
+      V_SROLE:      ${{ inputs.supabase_service_role_key }}
+      V_ANTHROPIC:  ${{ inputs.anthropic_api_key }}
+      V_APP_URL:    ${{ inputs.next_public_app_url }}
+      V_CRON:       ${{ inputs.cron_secret }}
     steps:
-      - name: Mask token and values
+      - name: Mask all secret values
         shell: bash
         run: |
           echo "::add-mask::$VERCEL_TOKEN"
-          count=0
-          while IFS= read -r line; do
-            line="${line%$'\r'}"
-            case "$line" in ""|"#"*) continue;; esac
-            key="${line%%=*}"
-            value="${line#*=}"
-            value="${value%\"}"; value="${value#\"}"
-            value="${value%\'}"; value="${value#\'}"
-            if [ -n "$value" ]; then
-              echo "::add-mask::$value"
-              count=$((count + 1))
-              echo "  parsed: $key"
-            fi
-          done <<< "$ENV_BLOCK"
-          echo "→ распознано $count переменных в env_block"
-          if [ "$count" -lt 6 ]; then
-            echo "::warning::env_block содержит только $count переменных, ожидалось 6 (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, NEXT_PUBLIC_APP_URL, CRON_SECRET)"
-          fi
+          echo "::add-mask::$V_ANON"
+          echo "::add-mask::$V_SROLE"
+          echo "::add-mask::$V_ANTHROPIC"
+          echo "::add-mask::$V_CRON"
 
       - name: Apply env vars to Vercel
         shell: bash
@@ -75,35 +88,29 @@ jobs:
           API="https://api.vercel.com"
           AUTH="Authorization: Bearer $VERCEL_TOKEN"
 
-          echo "→ fetching existing env vars"
+          echo "→ загружаем существующие env vars"
           curl -fsS -H "$AUTH" \
             "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" > existing.json
-          echo "  found $(jq '.envs | length' existing.json) existing"
+          echo "  найдено $(jq '.envs | length' existing.json) шт"
 
-          applied=0
-          while IFS= read -r raw; do
-            line="${raw%$'\r'}"
-            case "$line" in ""|"#"*) continue;; esac
-            key="${line%%=*}"
-            value="${line#*=}"
-            value="${value%\"}"; value="${value#\"}"
-            value="${value%\'}"; value="${value#\'}"
-            if [ -z "$key" ] || [ -z "$value" ]; then
-              echo "::warning::skipped malformed line"
-              continue
+          apply_var() {
+            local key="$1"
+            local value="$2"
+            local type="encrypted"
+            case "$key" in NEXT_PUBLIC_*) type="plain";; esac
+
+            if [ -z "$value" ]; then
+              echo "  ✗ $key — пустое значение, пропускаем"
+              return
             fi
 
             echo "::group::$key"
-
             ids=$(jq -r --arg k "$key" '.envs[] | select(.key == $k) | .id' existing.json)
             for id in $ids; do
-              echo "  - removing existing $id"
+              echo "  - удаляем существующий $id"
               curl -fsS -X DELETE -H "$AUTH" \
                 "$API/v9/projects/$PROJECT_ID/env/$id?teamId=$TEAM_ID" >/dev/null
             done
-
-            type="encrypted"
-            case "$key" in NEXT_PUBLIC_*) type="plain";; esac
 
             payload=$(jq -nc --arg k "$key" --arg v "$value" --arg t "$type" \
               '{key:$k, value:$v, type:$t, target:["production","preview","development"]}')
@@ -113,18 +120,22 @@ jobs:
             body=$(echo "$resp" | head -n -1)
             code=$(echo "$resp" | tail -n 1)
             if [ "$code" = "200" ] || [ "$code" = "201" ]; then
-              echo "  ✓ created (type=$type)"
-              applied=$((applied + 1))
+              echo "  ✓ создано (type=$type)"
             else
               echo "  ✗ HTTP $code: $body"
             fi
             echo "::endgroup::"
-          done <<< "$ENV_BLOCK"
+          }
+
+          apply_var "NEXT_PUBLIC_SUPABASE_URL"      "$V_URL"
+          apply_var "NEXT_PUBLIC_SUPABASE_ANON_KEY" "$V_ANON"
+          apply_var "SUPABASE_SERVICE_ROLE_KEY"     "$V_SROLE"
+          apply_var "ANTHROPIC_API_KEY"             "$V_ANTHROPIC"
+          apply_var "NEXT_PUBLIC_APP_URL"           "$V_APP_URL"
+          apply_var "CRON_SECRET"                   "$V_CRON"
 
           echo ""
-          echo "=== итог: применено $applied переменных ==="
-
-          # Проверяем что все 6 присутствуют
+          echo "=== verification ==="
           curl -fsS -H "$AUTH" \
             "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" > final.json
           for need in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY ANTHROPIC_API_KEY NEXT_PUBLIC_APP_URL CRON_SECRET; do

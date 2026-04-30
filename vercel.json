@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    { "path": "/api/agent/proactive", "schedule": "0 */2 * * *" },
+    { "path": "/api/agent/proactive", "schedule": "0 9 * * *" },
     { "path": "/api/agent/family-intelligence", "schedule": "0 23 * * *" },
-    { "path": "/api/agent/context-cache", "schedule": "0 */6 * * *" }
+    { "path": "/api/agent/context-cache", "schedule": "0 4 * * *" }
   ]
 }
