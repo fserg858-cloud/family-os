@@ -290,8 +290,11 @@ export async function GET(req: NextRequest) {
   }
 
   // CLAUDE OPUS 4.7
+  const skipAi = url.searchParams.get("skip_ai") === "1";
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
+  if (skipAi) {
+    steps.push({ name: "claude.opus-4-7", ok: true, ms: 0, detail: "skipped" });
+  } else if (!apiKey) {
     steps.push({ name: "claude.opus-4-7", ok: false, ms: 0, error: "ANTHROPIC_API_KEY not set" });
   } else {
     const r = await step("claude.opus-4-7 quick test", async () => {
@@ -316,7 +319,9 @@ export async function GET(req: NextRequest) {
   }
 
   // CLAUDE HAIKU 4.5
-  if (apiKey) {
+  if (skipAi) {
+    steps.push({ name: "claude.haiku-4-5", ok: true, ms: 0, detail: "skipped" });
+  } else if (apiKey) {
     const r = await step("claude.haiku-4-5 quick test", async () => {
       const a = new Anthropic({ apiKey });
       const resp = await a.messages.create({
