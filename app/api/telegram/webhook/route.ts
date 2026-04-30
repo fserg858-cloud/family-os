@@ -44,18 +44,24 @@ export async function POST(req: NextRequest) {
   }
 
   const token = m[1];
+  console.log("[tg-webhook] /start with token:", token, "from tg_user:", from.id);
   const sb = createAdminClient();
 
   // Найдём pending login-event
-  const { data: events } = await sb
+  const { data: events, error: selErr } = await sb
     .from("family_events")
     .select("id, payload, created_at")
     .eq("kind", "tg_login")
     .order("created_at", { ascending: false })
     .limit(200);
+  if (selErr) {
+    console.error("[tg-webhook] select failed:", selErr.message);
+  }
+  console.log("[tg-webhook] found", (events ?? []).length, "tg_login events");
 
   const row = (events ?? []).find((e: any) => e.payload?.token === token);
   if (!row) {
+    console.log("[tg-webhook] token not found among", (events ?? []).map((e: any) => e.payload?.token).join(","));
     await sendMessage(botToken, msg.chat.id, "Этот код уже не действителен. Открой /login заново.");
     return NextResponse.json({ ok: true });
   }
@@ -77,7 +83,12 @@ export async function POST(req: NextRequest) {
     tg_last_name: from.last_name ?? null,
     tg_username: from.username ?? null,
   };
-  await sb.from("family_events").update({ payload: updated }).eq("id", row.id);
+  const updRes = await sb.from("family_events").update({ payload: updated }).eq("id", row.id);
+  if (updRes.error) {
+    console.error("[tg-webhook] update failed:", updRes.error.message);
+  } else {
+    console.log("[tg-webhook] updated event", row.id, "with tg_user_id", from.id);
+  }
 
   await sendMessage(
     botToken,
