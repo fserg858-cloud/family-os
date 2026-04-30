@@ -1,4 +1,4 @@
-export type MemberKey = "fedor" | "ignat" | "nikolay" | "elena" | "tatyana";
+export type MemberKey = "fedor" | "ignat" | "nikolay" | "elena" | "tatyana" | "polina";
 export type UiProfile = "default" | "teen" | "elder";
 
 export interface MemberDef {
@@ -79,6 +79,19 @@ export const MEMBERS: Record<MemberKey, MemberDef> = {
     voice:
       "Спокойный, уважительный, неторопливый. Используй простые слова, короткие предложения, избегай сленга и англицизмов. Делай акцент на самочувствии и семейных воспоминаниях.",
     focus: ["самочувствие", "давление", "сон", "память", "истории для внуков"],
+  },
+  polina: {
+    key: "polina",
+    display_name: "Полина",
+    short_name: "П",
+    age: 19,
+    ui_profile: "default",
+    role: "Девушка Фёдора",
+    emoji: "💖",
+    color: "#FF8FB1",
+    voice:
+      "Тёплый, дружелюбный, на «ты». Говори как с близким человеком: уважай личные планы и совместные с Фёдором, поддерживай интересы и собственные цели, без поучений.",
+    focus: ["учёба", "красота и уход", "сон", "совместные планы с Фёдором", "энергия"],
   },
 };
 

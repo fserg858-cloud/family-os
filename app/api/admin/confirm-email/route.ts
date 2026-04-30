@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   const meta = (user.user_metadata ?? {}) as { member_key?: string; display_name?: string };
   const memberKey = meta.member_key ?? "fedor";
   const displayName = meta.display_name ?? "Участник";
-  const ageMap: Record<string, number> = { fedor: 18, ignat: 14, nikolay: 45, elena: 43, tatyana: 70 };
+  const ageMap: Record<string, number> = { fedor: 18, ignat: 14, nikolay: 45, elena: 43, tatyana: 70, polina: 19 };
   const uiMap: Record<string, string> = { tatyana: "elder", ignat: "teen" };
 
   const { data: existingProfile } = await sb.from("users").select("id").eq("id", user.id).maybeSingle();
