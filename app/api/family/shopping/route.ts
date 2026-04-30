@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { notifyFamily } from "@/lib/agent/notify";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
     kind: "shopping_added",
     payload: { item },
   });
+
+  const { data: actor } = await sb.from("users").select("display_name").eq("id", user.id).maybeSingle();
+  notifyFamily({
+    exceptUserId: user.id,
+    text: `🛒 ${(actor as any)?.display_name ?? "Кто-то"} добавил в список: ${data.item}${qty ? ` (${qty})` : ""}`,
+  }).catch(() => {});
 
   return NextResponse.json(data);
 }

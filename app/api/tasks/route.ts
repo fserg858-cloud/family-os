@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
 import { recordEvent } from "@/lib/agent/learn";
+import { notifyFamily } from "@/lib/agent/notify";
 
 export const runtime = "nodejs";
 
@@ -67,6 +68,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Семейный TG-бродкаст
+  const { data: actor } = await sb.from("users").select("display_name").eq("id", user.id).maybeSingle();
+  notifyFamily({
+    exceptUserId: user.id,
+    text: `🆕 ${(actor as any)?.display_name ?? "Кто-то"} добавил задачу: «${data.title}»`,
+  }).catch(() => {});
+
   return NextResponse.json(data);
 }
 
@@ -129,6 +137,14 @@ export async function PATCH(req: NextRequest) {
         payload: { task_id: id },
       });
     }
+
+    // Семейный TG-бродкаст
+    const { data: actor } = await sb.from("users").select("display_name").eq("id", user.id).maybeSingle();
+    const reward = task.points ?? task.reward_xp ?? 10;
+    notifyFamily({
+      exceptUserId: user.id,
+      text: `🎉 ${(actor as any)?.display_name ?? "Кто-то"} закрыл задачу: «${task.title}» (+${reward} XP)`,
+    }).catch(() => {});
   }
 
   return NextResponse.json(data);

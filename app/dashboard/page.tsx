@@ -78,6 +78,21 @@ export default async function DashboardPage() {
         </ProgressRing>
       </section>
 
+      <div className="grid grid-cols-3 gap-2 -mx-1 mb-2">
+        <Link href="/calendar" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
+          <span className="text-xl">📅</span>
+          <span className="text-[11px] text-muted">Календарь</span>
+        </Link>
+        <Link href="/menu" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
+          <span className="text-xl">🍽️</span>
+          <span className="text-[11px] text-muted">Меню недели</span>
+        </Link>
+        <Link href="/shopping" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
+          <span className="text-xl">🛒</span>
+          <span className="text-[11px] text-muted">Покупки</span>
+        </Link>
+      </div>
+
       <SectionHeader title="Семья" action={<Link href="/family" className="text-xs text-accent">Все →</Link>} />
       <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5">
         {(members ?? []).map((m: any) => {

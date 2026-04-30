@@ -3,6 +3,7 @@
   "crons": [
     { "path": "/api/agent/proactive", "schedule": "0 9 * * *" },
     { "path": "/api/agent/family-intelligence", "schedule": "0 23 * * *" },
-    { "path": "/api/agent/context-cache", "schedule": "0 4 * * *" }
+    { "path": "/api/agent/context-cache", "schedule": "0 4 * * *" },
+    { "path": "/api/calendar/reminders", "schedule": "0 8 * * *" }
   ]
 }
