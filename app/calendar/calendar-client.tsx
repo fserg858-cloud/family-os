@@ -153,7 +153,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={add} disabled={busy} block>
+              <Button onClick={add} disabled={busy} className="flex-1">
                 {busy ? "Сохраняю…" : "Сохранить"}
               </Button>
               <Button

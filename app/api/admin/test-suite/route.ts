@@ -275,6 +275,40 @@ export async function GET(req: NextRequest) {
     steps.push(r.step);
   }
 
+  // FAMILY_CALENDAR
+  let calId: string | null = null;
+  {
+    const r = await step("family_calendar.insert", async () =>
+      run<any>(
+        sb
+          .from("family_calendar")
+          .insert({
+            created_by: userId,
+            title: `[test] Событие ${Date.now()}`,
+            starts_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            location: "тест",
+          })
+          .select()
+          .single(),
+      ),
+    );
+    steps.push(r.step);
+    calId = (r.result as any)?.id ?? null;
+  }
+  if (calId) {
+    const r = await step("family_calendar.update_reminder_flag", async () =>
+      run<any>(
+        sb
+          .from("family_calendar")
+          .update({ reminder_24h_sent: true })
+          .eq("id", calId!)
+          .select()
+          .single(),
+      ),
+    );
+    steps.push(r.step);
+  }
+
   // FAMILY_EVENTS read
   {
     const r = await step("family_events.select", async () =>
@@ -343,8 +377,8 @@ export async function GET(req: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || `${url.protocol}//${url.host}`;
   const cronSecret = process.env.CRON_SECRET?.trim();
   const cronPaths = url.searchParams.get("skip_ai") === "1"
-    ? ["/api/agent/context-cache"]
-    : ["/api/agent/context-cache", "/api/agent/proactive", "/api/agent/family-intelligence"];
+    ? ["/api/agent/context-cache", "/api/calendar/reminders"]
+    : ["/api/agent/context-cache", "/api/agent/proactive", "/api/agent/family-intelligence", "/api/calendar/reminders"];
   if (cronSecret) {
     for (const path of cronPaths) {
       const r = await step(`cron ${path}`, async () => {
@@ -382,6 +416,7 @@ export async function GET(req: NextRequest) {
       await sb.from("family_tasks").delete().eq("created_by", userId).like("title", "[test]%");
       await sb.from("shopping_list").delete().eq("added_by", userId).like("item", "[test]%");
       await sb.from("notifications").delete().eq("user_id", userId).eq("kind", "test");
+      await sb.from("family_calendar").delete().eq("created_by", userId).like("title", "[test]%");
       return { cleaned: true };
     });
     steps.push(r.step);

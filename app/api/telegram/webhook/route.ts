@@ -8,12 +8,12 @@ import { XP_REWARDS, levelFromXp } from "@/lib/xp";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const HELP = `*XS.Family — что умеет бот:*
+const HELP = `XS.Family — что умеет бот:
 
 /today — задачи и привычки на сегодня
 /task <текст> — создать задачу (например: /task купить хлеб)
-/buy <товар> — добавить в список покупок (/buy молоко 2 шт)
-/done — последние твои задачи (с номерами для выполнения)
+/buy <товар> — добавить в список покупок (например: /buy молоко 2 шт)
+/done — список открытых задач с номерами
 /done N — закрыть задачу №N
 /xp — твой уровень, XP и стрики
 /menu — AI-меню недели
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
   // 3) /help
   if (text.trim() === "/help") {
-    await sendMessage(botToken, chatId, HELP, { parse_mode: "MarkdownV2" });
+    await sendMessage(botToken, chatId, HELP);
     return NextResponse.json({ ok: true });
   }
 
@@ -217,7 +217,7 @@ async function handleToday(botToken: string, chatId: number, userId: string) {
       .or(`due_at.is.null,and(due_at.gte.${dayStart},due_at.lt.${dayEnd})`)
       .order("due_at", { ascending: true })
       .limit(15),
-    sb.from("habits").select("title, streak").eq("user_id", userId).eq("active", true),
+    sb.from("habits").select("id, title, streak").eq("user_id", userId).eq("active", true),
     sb.from("habit_logs").select("habit_id").eq("user_id", userId).eq("done_on", todayISO),
   ]);
 
