@@ -17,7 +17,8 @@ const PreferencesContext = createContext<Ctx | null>(null);
 
 function setCookie(name: string, value: string) {
   const oneYear = 60 * 60 * 24 * 365;
-  document.cookie = `${name}=${value}; path=/; max-age=${oneYear}; SameSite=Lax`;
+  const secure = typeof location !== "undefined" && location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${name}=${value}; path=/; max-age=${oneYear}; SameSite=Lax${secure}`;
 }
 
 export function PreferencesProvider({
