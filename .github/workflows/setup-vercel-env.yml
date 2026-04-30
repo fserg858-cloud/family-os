@@ -92,6 +92,30 @@ jobs:
           echo "::add-mask::$V_CRON"
           if [ -n "$V_TG_TOKEN" ]; then echo "::add-mask::$V_TG_TOKEN"; fi
 
+      - name: Auto-detect bot username if missing
+        id: tg
+        shell: bash
+        env:
+          TG_TOKEN: ${{ inputs.telegram_bot_token }}
+          TG_NAME:  ${{ inputs.telegram_bot_name }}
+        run: |
+          set -e
+          name="$TG_NAME"
+          if [ -n "$TG_TOKEN" ] && [ -z "$name" ]; then
+            echo "→ telegram_bot_name пустой, дёргаю getMe..."
+            resp=$(curl -fsS "https://api.telegram.org/bot${TG_TOKEN}/getMe")
+            ok=$(echo "$resp" | jq -r '.ok')
+            if [ "$ok" = "true" ]; then
+              name=$(echo "$resp" | jq -r '.result.username')
+              echo "  ✓ bot username: $name"
+            else
+              err=$(echo "$resp" | jq -r '.description // "unknown"')
+              echo "::error::getMe failed: $err"
+              exit 1
+            fi
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
       - name: Apply env vars to Vercel
         shell: bash
         run: |
@@ -145,7 +169,7 @@ jobs:
           apply_var "NEXT_PUBLIC_APP_URL"           "$V_APP_URL"
           apply_var "CRON_SECRET"                   "$V_CRON"
           apply_var "TELEGRAM_BOT_TOKEN"            "$V_TG_TOKEN"
-          apply_var "NEXT_PUBLIC_TELEGRAM_BOT_NAME" "$V_TG_NAME"
+          apply_var "NEXT_PUBLIC_TELEGRAM_BOT_NAME" "${{ steps.tg.outputs.name }}"
 
           echo ""
           echo "=== verification ==="
