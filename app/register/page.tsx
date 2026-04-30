@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { MEMBER_LIST, MEMBERS, type MemberKey } from "@/lib/members";
 import { cn } from "@/lib/utils";
-import { TelegramLogin, type TelegramUser } from "@/components/telegram-login";
+import { TelegramButton } from "@/components/telegram-button";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,8 +18,6 @@ export default function RegisterPage() {
   const [memberKey, setMemberKey] = useState<MemberKey>("fedor");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,32 +62,6 @@ export default function RegisterPage() {
     }
   }
 
-  async function onTelegramAuth(user: TelegramUser) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tg_data: user, member_key: memberKey }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "telegram auth failed");
-
-      const sb = createClient();
-      const r = await sb.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-      if (r.error) throw new Error(r.error.message);
-      router.push("/dashboard");
-      router.refresh();
-    } catch (e: any) {
-      setError(e.message);
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-5 py-10">
       <motion.div
@@ -103,7 +75,7 @@ export default function RegisterPage() {
           <p className="text-sm text-muted mt-2">Выбери свой аватар</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {MEMBER_LIST.map((m) => {
             const active = memberKey === m.key;
             return (
@@ -132,14 +104,15 @@ export default function RegisterPage() {
           })}
         </div>
 
-        {botName && (
-          <div className="mb-6">
-            <TelegramLogin botName={botName} onAuth={onTelegramAuth} />
-            <div className="text-center text-xs text-muted mt-3">
-              Или зарегистрируйся через email
-            </div>
-          </div>
-        )}
+        <div className="mb-5">
+          <TelegramButton memberKey={memberKey} />
+        </div>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted uppercase tracking-widest">или email</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

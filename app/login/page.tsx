@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { TelegramLogin, type TelegramUser } from "@/components/telegram-login";
+import { TelegramButton } from "@/components/telegram-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,8 +15,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,32 +29,6 @@ export default function LoginPage() {
     }
     router.push("/dashboard");
     router.refresh();
-  }
-
-  async function onTelegramAuth(user: TelegramUser) {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tg_data: user }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "telegram auth failed");
-
-      const sb = createClient();
-      const r = await sb.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-      if (r.error) throw new Error(r.error.message);
-      router.push("/dashboard");
-      router.refresh();
-    } catch (e: any) {
-      setError(e.message);
-      setLoading(false);
-    }
   }
 
   return (
@@ -75,14 +47,15 @@ export default function LoginPage() {
           <p className="text-sm text-muted mt-2">Семейный хаб для всех</p>
         </div>
 
-        {botName && (
-          <div className="mb-6">
-            <TelegramLogin botName={botName} onAuth={onTelegramAuth} />
-            <div className="text-center text-xs text-muted mt-3">
-              Или войди через email
-            </div>
-          </div>
-        )}
+        <div className="mb-5">
+          <TelegramButton />
+        </div>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted uppercase tracking-widest">или</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
