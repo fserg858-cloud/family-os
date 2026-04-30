@@ -1,0 +1,47 @@
+name: Telegram bot getMe
+
+# Дёргает api.telegram.org/bot<token>/getMe и выводит username бота.
+# Запускается вручную, токен принимается через input и маскируется в логах.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot_token:
+        description: "TELEGRAM_BOT_TOKEN от @BotFather"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  getme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mask
+        run: echo "::add-mask::${{ inputs.bot_token }}"
+
+      - name: getMe
+        env:
+          TOKEN: ${{ inputs.bot_token }}
+        run: |
+          set -e
+          resp=$(curl -fsS "https://api.telegram.org/bot${TOKEN}/getMe")
+          echo "$resp" | jq .
+
+          ok=$(echo "$resp" | jq -r '.ok')
+          if [ "$ok" != "true" ]; then
+            echo "::error::Telegram API returned ok=false"
+            exit 1
+          fi
+
+          username=$(echo "$resp" | jq -r '.result.username')
+          first_name=$(echo "$resp" | jq -r '.result.first_name')
+          echo ""
+          echo "===== BOT INFO ====="
+          echo "username:    $username"
+          echo "first_name:  $first_name"
+          echo "===================="
+          echo ""
+          echo "Используй username '$username' (без @) как NEXT_PUBLIC_TELEGRAM_BOT_NAME"
+          echo "когда будешь запускать setup-vercel-env workflow."
