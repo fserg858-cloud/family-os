@@ -51,7 +51,8 @@ export async function updateSession(request: NextRequest) {
     path === "/register" ||
     path === "/setup" ||
     path.startsWith("/_next") ||
-    path.startsWith("/favicon");
+    path.startsWith("/favicon") ||
+    path.startsWith("/api/");
 
   if (!user && !isPublic) {
     const u = request.nextUrl.clone();
