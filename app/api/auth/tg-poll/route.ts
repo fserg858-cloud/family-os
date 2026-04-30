@@ -6,10 +6,9 @@ import { MEMBERS, type MemberKey } from "@/lib/members";
 export const runtime = "nodejs";
 
 // GET /api/auth/tg-poll?token=xxx
-// Опрашивается с клиента раз в секунду. Когда webhook привязал tg_user_id —
-// создаём auth-юзера, генерируем magic-link и возвращаем его в JSON.
-// Клиент делает window.location = magic_link → Supabase сам поставит cookie
-// и зальёт юзера на /dashboard.
+// Опрашивается клиентом раз в 2 сек. Когда webhook привязал tg_user_id —
+// создаём auth-юзера, magic-link, возвращаем redirect URL.
+// Хранение токенов: family_events kind='tg_login'.
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -22,26 +21,32 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = createAdminClient();
-  const { data: row, error } = await sb
-    .from("tg_login_tokens")
-    .select("*")
-    .eq("token", token)
-    .maybeSingle();
-  if (error || !row) {
+  const { data: events } = await sb
+    .from("family_events")
+    .select("id, payload, created_at")
+    .eq("kind", "tg_login")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const row = (events ?? []).find((e: any) => e.payload?.token === token);
+  if (!row) {
     return NextResponse.json({ status: "expired" }, { status: 404 });
   }
-  if (new Date(row.expires_at).getTime() < Date.now()) {
+  const p = row.payload || {};
+
+  if (p.consumed) {
     return NextResponse.json({ status: "expired" });
   }
-  if (!row.tg_user_id) {
+  const expiresAt = p.expires_at ? new Date(p.expires_at).getTime() : 0;
+  if (expiresAt && expiresAt < Date.now()) {
+    return NextResponse.json({ status: "expired" });
+  }
+  if (!p.tg_user_id) {
     return NextResponse.json({ status: "pending" });
   }
-  if (row.consumed_at) {
-    return NextResponse.json({ status: "expired" });
-  }
 
-  // Связь есть — создаём/находим auth-юзера и возвращаем magic-link.
-  const tgId = String(row.tg_user_id);
+  // Связь есть — создаём/находим auth-юзера и magic-link.
+  const tgId = String(p.tg_user_id);
   const email = telegramEmail(tgId);
   const password = deriveTelegramPassword(tgId, botToken);
 
@@ -51,9 +56,10 @@ export async function GET(req: NextRequest) {
   }
   let authUser = list.data.users.find((u) => u.email === email);
 
-  const firstName = (row.tg_first_name ?? "").trim();
-  const lastName = (row.tg_last_name ?? "").trim();
-  const displayName = [firstName, lastName].filter(Boolean).join(" ") || `tg_${tgId}`;
+  const firstName = (p.tg_first_name ?? "").trim();
+  const lastName = (p.tg_last_name ?? "").trim();
+  const displayName =
+    [firstName, lastName].filter(Boolean).join(" ") || `tg_${tgId}`;
 
   if (!authUser) {
     const created = await sb.auth.admin.createUser({
@@ -65,8 +71,8 @@ export async function GET(req: NextRequest) {
         telegram_id: tgId,
         first_name: firstName,
         last_name: lastName,
-        username: row.tg_username ?? null,
-        member_key: row.member_key ?? "fedor",
+        username: p.tg_username ?? null,
+        member_key: p.member_key ?? "fedor",
       },
     });
     if (created.error || !created.data.user) {
@@ -80,7 +86,7 @@ export async function GET(req: NextRequest) {
     await sb.auth.admin.updateUserById(authUser.id, { password, email_confirm: true });
   }
 
-  const m = (row.member_key && MEMBERS[row.member_key as MemberKey]) || MEMBERS.fedor;
+  const m = (p.member_key && MEMBERS[p.member_key as MemberKey]) || MEMBERS.fedor;
 
   const { data: existing } = await sb
     .from("users")
@@ -95,9 +101,8 @@ export async function GET(req: NextRequest) {
       display_name: displayName,
       age: m.age,
       ui_profile: m.ui_profile,
-      avatar: row.tg_photo_url ?? null,
     });
-  } else if (row.member_key) {
+  } else if (p.member_key) {
     await sb
       .from("users")
       .update({
@@ -109,7 +114,6 @@ export async function GET(req: NextRequest) {
       .eq("id", authUser.id);
   }
 
-  // Magic link
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim() || `${url.protocol}//${url.host}`;
   const link = await sb.auth.admin.generateLink({
@@ -124,11 +128,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Помечаем токен использованным, чтобы повторно не сработал
+  // Помечаем токен использованным
   await sb
-    .from("tg_login_tokens")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("token", token);
+    .from("family_events")
+    .update({ payload: { ...p, consumed: true } })
+    .eq("id", row.id);
 
   return NextResponse.json({
     status: "ok",

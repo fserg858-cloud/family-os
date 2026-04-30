@@ -3,12 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// POST /api/telegram/webhook — принимает updates от Telegram Bot API.
-// Защищается через X-Telegram-Bot-Api-Secret-Token (выставляем при setWebhook).
-//
-// Логика: если message.text начинается с "/start <token>" — связываем
-// этот token с from.id, чтобы /api/auth/tg-poll мог его подобрать.
-// Отвечаем юзеру в чате чтобы он понял что входим.
+// POST /api/telegram/webhook — Telegram Bot API updates.
+// /start <token> → находим в family_events запись kind='tg_login' с этим token
+// и записываем туда tg_user_id+имя.
 
 export async function POST(req: NextRequest) {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
@@ -32,61 +29,60 @@ export async function POST(req: NextRequest) {
   const msg = update?.message;
   const text: string | undefined = msg?.text;
   const from = msg?.from;
+  if (!from || !text) return NextResponse.json({ ok: true });
 
-  if (!from || !text) {
-    return NextResponse.json({ ok: true });
-  }
-
-  // Поддерживаем только "/start <token>"
-  const match = text.match(/^\/start\s+([a-z0-9]+)\s*$/i);
-  if (!match) {
-    // Просто /start без токена — короткое приветствие
+  const m = text.match(/^\/start\s+([a-z0-9]+)\s*$/i);
+  if (!m) {
     if (text.trim() === "/start") {
       await sendMessage(
         botToken,
         msg.chat.id,
-        "Привет! Чтобы войти в XS.Family, открой /login на сайте и нажми «Войти через Telegram» — это создаст рабочую ссылку.",
+        "Привет! Чтобы войти в XS.Family — открой /login на сайте и нажми «Войти через Telegram». Это создаст рабочую ссылку.",
       );
     }
     return NextResponse.json({ ok: true });
   }
 
-  const token = match[1];
+  const token = m[1];
   const sb = createAdminClient();
 
-  const { data: row, error } = await sb
-    .from("tg_login_tokens")
-    .select("token, expires_at, consumed_at")
-    .eq("token", token)
-    .maybeSingle();
+  // Найдём pending login-event
+  const { data: events } = await sb
+    .from("family_events")
+    .select("id, payload, created_at")
+    .eq("kind", "tg_login")
+    .order("created_at", { ascending: false })
+    .limit(200);
 
-  if (error || !row) {
+  const row = (events ?? []).find((e: any) => e.payload?.token === token);
+  if (!row) {
     await sendMessage(botToken, msg.chat.id, "Этот код уже не действителен. Открой /login заново.");
     return NextResponse.json({ ok: true });
   }
-  if (row.consumed_at) {
-    await sendMessage(botToken, msg.chat.id, "Эта ссылка уже использована. Открой /login заново.");
+  const p = row.payload || {};
+  if (p.consumed) {
+    await sendMessage(botToken, msg.chat.id, "Эта ссылка уже использована.");
     return NextResponse.json({ ok: true });
   }
-  if (new Date(row.expires_at).getTime() < Date.now()) {
+  const expiresAt = p.expires_at ? new Date(p.expires_at).getTime() : 0;
+  if (expiresAt && expiresAt < Date.now()) {
     await sendMessage(botToken, msg.chat.id, "Срок действия ссылки истёк (15 мин). Открой /login заново.");
     return NextResponse.json({ ok: true });
   }
 
-  await sb
-    .from("tg_login_tokens")
-    .update({
-      tg_user_id: String(from.id),
-      tg_first_name: from.first_name ?? null,
-      tg_last_name: from.last_name ?? null,
-      tg_username: from.username ?? null,
-    })
-    .eq("token", token);
+  const updated = {
+    ...p,
+    tg_user_id: String(from.id),
+    tg_first_name: from.first_name ?? null,
+    tg_last_name: from.last_name ?? null,
+    tg_username: from.username ?? null,
+  };
+  await sb.from("family_events").update({ payload: updated }).eq("id", row.id);
 
   await sendMessage(
     botToken,
     msg.chat.id,
-    `Готово, ${from.first_name ?? "друг"}! Возвращайся на вкладку XS.Family — она сама обновится через секунду.`,
+    `Готово, ${from.first_name ?? "друг"}! Возвращайся на вкладку XS.Family — она сама обновится.`,
   );
 
   return NextResponse.json({ ok: true });

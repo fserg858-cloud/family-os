@@ -6,12 +6,10 @@ export const runtime = "nodejs";
 
 // POST /api/auth/tg-start { member_key?: string }
 // Создаёт короткоживущий login-token (15 мин) и возвращает deeplink на бот.
-// Дальше клиент откроет t.me/<bot>?start=<token>, юзер нажмёт Start —
-// бот через webhook привяжет tg_user_id к токену.
+// Хранит в family_events (kind='tg_login') — без отдельной миграции.
 
 export async function POST(req: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  // TELEGRAM_BOT_NAME — server-only (не NEXT_PUBLIC_), runtime-видимая
   const botName =
     process.env.TELEGRAM_BOT_NAME?.trim() ||
     process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME?.trim();
@@ -25,13 +23,22 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const memberKey = typeof body.member_key === "string" ? body.member_key : null;
 
-  // 24 hex chars — достаточно энтропии, безопасно для t.me URL
   const token = randomBytes(12).toString("hex");
+  const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
   const sb = createAdminClient();
-  const { error } = await sb.from("tg_login_tokens").insert({
-    token,
-    member_key: memberKey,
+  const { error } = await sb.from("family_events").insert({
+    kind: "tg_login",
+    payload: {
+      token,
+      member_key: memberKey,
+      expires_at,
+      tg_user_id: null,
+      tg_first_name: null,
+      tg_last_name: null,
+      tg_username: null,
+      consumed: false,
+    },
   });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
