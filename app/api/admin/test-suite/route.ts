@@ -333,6 +333,31 @@ export async function GET(req: NextRequest) {
     steps.push(r.step);
   }
 
+  // CRON endpoints — server-side fetch с правильным Bearer
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || `${url.protocol}//${url.host}`;
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (cronSecret) {
+    for (const path of ["/api/agent/context-cache", "/api/agent/proactive", "/api/agent/family-intelligence"]) {
+      const r = await step(`cron ${path}`, async () => {
+        const resp = await fetch(`${baseUrl}${path}`, {
+          headers: { authorization: `Bearer ${cronSecret}` },
+        });
+        const txt = await resp.text();
+        let body: any = txt;
+        try {
+          body = JSON.parse(txt);
+        } catch {
+          /* keep as string */
+        }
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}: ${typeof body === "string" ? body.slice(0, 200) : JSON.stringify(body).slice(0, 200)}`);
+        }
+        return body;
+      });
+      steps.push(r.step);
+    }
+  }
+
   // Cleanup test rows
   {
     const r = await step("cleanup test rows", async () => {
