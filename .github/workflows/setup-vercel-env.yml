@@ -2,7 +2,7 @@ name: Setup Vercel env vars
 
 # Запускается вручную из вкладки Actions.
 # Принимает Vercel token и блок .env как input.
-# Маскирует все секреты в логах, удаляет старые env vars,
+# Маскирует секреты в логах, удаляет старые env vars,
 # создаёт новые на Production+Preview+Development и триггерит prod redeploy.
 
 on:
@@ -33,106 +33,88 @@ permissions:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ inputs.vercel_token }}
+      PROJECT_ID:   ${{ inputs.project_id }}
+      TEAM_ID:      ${{ inputs.team_id }}
+      ENV_BLOCK:    ${{ inputs.env_block }}
     steps:
-      - name: Mask secrets
+      - name: Mask token and values
+        shell: bash
         run: |
-          echo "::add-mask::${{ inputs.vercel_token }}"
-          # Маскируем каждое VALUE из env-блока, чтоб не утекло в логи
+          echo "::add-mask::$VERCEL_TOKEN"
           while IFS= read -r line; do
             line="${line%$'\r'}"
-            [[ -z "$line" || "$line" == \#* ]] && continue
+            case "$line" in ""|"#"*) continue;; esac
             value="${line#*=}"
             value="${value%\"}"; value="${value#\"}"
             value="${value%\'}"; value="${value#\'}"
-            [[ -n "$value" ]] && echo "::add-mask::$value"
-          done <<< "${{ inputs.env_block }}"
+            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+          done <<< "$ENV_BLOCK"
 
       - name: Apply env vars to Vercel
-        env:
-          VERCEL_TOKEN: ${{ inputs.vercel_token }}
-          PROJECT_ID:   ${{ inputs.project_id }}
-          TEAM_ID:      ${{ inputs.team_id }}
-          ENV_BLOCK:    ${{ inputs.env_block }}
+        shell: bash
         run: |
           set -e
           API="https://api.vercel.com"
-          AUTH="Authorization: Bearer ${VERCEL_TOKEN}"
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
 
-          echo "→ загружаю текущие env vars"
-          existing=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID")
+          echo "fetching existing env vars..."
+          curl -fsS -H "$AUTH" \
+            "$API/v9/projects/$PROJECT_ID/env?teamId=$TEAM_ID" > existing.json
 
           while IFS= read -r raw; do
             line="${raw%$'\r'}"
-            [[ -z "$line" || "$line" == \#* ]] && continue
+            case "$line" in ""|"#"*) continue;; esac
             key="${line%%=*}"
             value="${line#*=}"
             value="${value%\"}"; value="${value#\"}"
             value="${value%\'}"; value="${value#\'}"
-            [[ -z "$key" || -z "$value" ]] && continue
+            if [ -z "$key" ] || [ -z "$value" ]; then continue; fi
 
-            # Удаляем все существующие записи с этим key
-            ids=$(echo "$existing" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-target = '$key'
-for e in data.get('envs', []):
-    if e.get('key') == target:
-        print(e['id'])
-")
+            echo "::group::$key"
+
+            # Delete any existing entries with this key
+            ids=$(jq -r --arg k "$key" '.envs[] | select(.key == $k) | .id' existing.json)
             for id in $ids; do
-              echo "  - удаляю $key ($id)"
+              echo "  removing old $key ($id)"
               curl -fsS -X DELETE -H "$AUTH" \
                 "$API/v9/projects/$PROJECT_ID/env/$id?teamId=$TEAM_ID" >/dev/null
             done
 
-            # Тип: NEXT_PUBLIC_* и NEXT_PUBLIC_APP_URL могут быть plain;
-            # секреты — encrypted (по умолчанию это всё encrypted).
+            # Type: NEXT_PUBLIC_* — plain (visible in client bundle), rest — encrypted
             type="encrypted"
-            if [[ "$key" == NEXT_PUBLIC_* ]]; then type="plain"; fi
+            case "$key" in NEXT_PUBLIC_*) type="plain";; esac
 
-            echo "  + добавляю $key (type=$type) для всех окружений"
-            payload=$(python3 -c "
-import json, sys, os
-print(json.dumps({
-  'key': os.environ['K'],
-  'value': os.environ['V'],
-  'type': os.environ['T'],
-  'target': ['production','preview','development']
-}))" K="$key" V="$value" T="$type")
+            payload=$(jq -nc --arg k "$key" --arg v "$value" --arg t "$type" \
+              '{key:$k, value:$v, type:$t, target:["production","preview","development"]}')
+            echo "  creating $key (type=$type)"
             curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
               -d "$payload" \
               "$API/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID" >/dev/null
+
+            echo "::endgroup::"
           done <<< "$ENV_BLOCK"
 
-          echo "✓ все переменные выставлены"
+          echo "all env vars applied"
 
       - name: Trigger production redeploy
-        env:
-          VERCEL_TOKEN: ${{ inputs.vercel_token }}
-          PROJECT_ID:   ${{ inputs.project_id }}
-          TEAM_ID:      ${{ inputs.team_id }}
+        shell: bash
         run: |
           set -e
           API="https://api.vercel.com"
-          AUTH="Authorization: Bearer ${VERCEL_TOKEN}"
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
 
-          # Берём последний production deployment и переразворачиваем его
-          # (rebuild без хука — заберёт свежие env vars).
           last=$(curl -fsS -H "$AUTH" \
             "$API/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&target=production&limit=1" \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['deployments'][0]['uid'])")
-          echo "→ rebuild deployment $last"
+            | jq -r '.deployments[0].uid')
+          echo "rebuilding $last"
 
-          payload=$(python3 -c "
-import json, sys, os
-print(json.dumps({
-  'name': 'family-os',
-  'deploymentId': os.environ['ID'],
-  'target': 'production'
-}))" ID="$last")
-          curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
+          payload=$(jq -nc --arg id "$last" \
+            '{name:"family-os", deploymentId:$id, target:"production"}')
+          url=$(curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
             -d "$payload" \
             "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1" \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); print('  →', d.get('url','(no url)'))"
-
-          echo "✓ redeploy запущен — следи на https://vercel.com/$TEAM_ID/family-os"
+            | jq -r '.url')
+          echo "new deployment: https://$url"
+          echo "follow at https://vercel.com/$TEAM_ID/family-os"
