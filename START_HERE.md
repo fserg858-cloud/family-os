@@ -1,63 +1,46 @@
-# START HERE — 2 действия и приложение работает
+# Один копи-паст для Supabase
 
-`/setup` показывается, потому что в Vercel-проекте не выставлены env vars,
-а в Supabase не применены миграции. Я не могу сделать это сам из своего
-sandbox: api.vercel.com не входит в allowlist, у GitHub-MCP нет endpoint
-запуска workflow, у Supabase-MCP моего токена нет доступа к этому проекту.
+`/setup`-страница исчезла — Vercel env-переменные выставлены ✓
 
-## Действие 1 — Vercel env vars (1 минута)
+Осталось одно действие — применить SQL.
 
-Открой в браузере:
-**https://github.com/fserg858-cloud/family-os/actions/workflows/setup-vercel-env.yml**
-
-Справа кнопка `Run workflow`. В форме:
-
-- **vercel_token** → возьми токен из чата (тот что начинается на `vcp_…`).
-- **env_block** → скопируй содержимое `.env.local` с твоего десктопа целиком.
-  6 строк `KEY=VALUE`. Если потерял — попроси меня в чате.
-- **project_id** и **team_id** — оставь дефолтными (уже подставлены).
-
-Жми зелёную кнопку `Run workflow`.
-
-Workflow за ~30 секунд:
-1. Замаскирует токен и значения в логах (`::add-mask::`).
-2. Удалит существующие env vars с теми же ключами.
-3. Создаст 6 новых на Production + Preview + Development.
-4. Триггернёт rebuild prod-деплоя.
-
-После завершения `family-os-silk.vercel.app` начнёт показывать реальное
-приложение вместо страницы `/setup`.
-
-## Действие 2 — Supabase миграции (1 минута)
+## Шаг 1. Применить миграции в Supabase
 
 Открой:
 **https://supabase.com/dashboard/project/kuinruimnpnxhbpdjohj/sql/new**
 
-Прогони поочерёдно содержимое 3 файлов:
-1. `supabase/migrations/001_initial.sql`
-2. `supabase/migrations/002_xs_family.sql`
-3. `supabase/migrations/003_agent_system.sql`
+Открой файл `supabase/migrations/ALL.sql` (он содержит все 3 миграции
+склеенные в один блок), скопируй ВСЁ содержимое целиком,
+вставь в SQL Editor, нажми зелёную кнопку **Run**.
 
-Каждый: copy → paste в SQL Editor → `Run`. Все три идемпотентны,
-повторный прогон не сломает.
+Это создаст 22 таблицы, RLS-политики, индексы, триггеры и засеет
+2 семейных челленджа. Идемпотентно — можно прогнать повторно.
 
-## Действие 3 (опционально) — Email auth
+## Шаг 2. Включить Email auth
 
-Supabase Dashboard → Authentication → Providers → Email = enabled.
-В Authentication → Settings выключи `Confirm email` (для удобства).
+**https://supabase.com/dashboard/project/kuinruimnpnxhbpdjohj/auth/providers**
 
-После этих действий регистрация на `/register` работает целиком —
-включая стриминговый AI-чат, проактивные сообщения, паттерны и
-ежедневную семейную аналитику через cron.
+Email Provider → Enabled.
+В **Settings → Email** выключи `Confirm email` (для удобства разработки —
+регистрация не будет требовать подтверждения почты).
 
-## Что уже сделано в коде (всё запушено в эту ветку)
+## Шаг 3. Готово
 
-- ✅ XS.Family дизайн на 33 маршрутах
-- ✅ TaskCard со свайпом, ProgressRing, BottomNav
-- ✅ Самообучающийся AI-агент (claude-opus-4-7 / haiku-4-5)
-- ✅ Стриминговый чат с памятью + страница `/memory`
-- ✅ Проактивные сообщения с 5 триггерами
-- ✅ Cron jobs (proactive 2h, family-intel 23:00, context-cache 6h)
-- ✅ Server-side обучение от привычек, целей, рефлексии, задач, здоровья
-- ✅ `/setup` фолбэк когда env-переменные не выставлены
-- ✅ Build проходит локально без env, 33 + 7 агентских роута
+Открой https://family-os-silk.vercel.app/register — выбери своего
+участника (аватар), email + пароль, **Создать аккаунт**. Дальше:
+
+- `/dashboard` — приветствие, ProgressRing, аватары семьи, задачи, лента
+- `/tasks` + `/tasks/create` — задачи со свайпом
+- `/family` — карусель аватаров
+- `/shopping` — общий список продуктов
+- `/profile` — твой профиль с XP, ачивки, разделы
+- `/events` — лента семейной активности по дням
+- `/notifications` — уведомления
+- `/assistant` — AI-чат (потоковый, claude-opus-4-7)
+- `/memory` — паттерны и решения которые AI запомнил о тебе
+- `/habits`, `/goals`, `/health`, `/reflection`, `/growth`, `/report`
+
+Cron-задачи в `vercel.json` запустятся автоматически:
+- проактивные сообщения каждые 2 часа
+- семейная аналитика в 23:00 ежедневно
+- обновление context-cache каждые 6 часов
