@@ -50,10 +50,11 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
         try {
           const p = await fetch(`/api/auth/tg-poll?token=${encodeURIComponent(token)}`);
           const pd = await p.json();
-          if (pd.status === "ok" && pd.redirect) {
+          if (pd.status === "ok") {
             if (pollerRef.current) clearInterval(pollerRef.current);
-            if (onSuccess) onSuccess(pd.redirect);
-            else window.location.href = pd.redirect;
+            const redirectUrl = pd.redirect || "/dashboard";
+            if (onSuccess) onSuccess(redirectUrl);
+            else window.location.href = redirectUrl;
           } else if (pd.status === "expired") {
             if (pollerRef.current) clearInterval(pollerRef.current);
             setState("error");

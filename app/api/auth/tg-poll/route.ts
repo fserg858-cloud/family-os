@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deriveTelegramPassword, telegramEmail } from "@/lib/telegram";
 import { MEMBERS, type MemberKey } from "@/lib/members";
@@ -7,8 +9,8 @@ export const runtime = "nodejs";
 
 // GET /api/auth/tg-poll?token=xxx
 // Опрашивается клиентом раз в 2 сек. Когда webhook привязал tg_user_id —
-// создаём auth-юзера, magic-link, возвращаем redirect URL.
-// Хранение токенов: family_events kind='tg_login'.
+// создаём auth-юзера, ЛОГИНИМСЯ через signInWithPassword напрямую на сервере
+// (чтобы Supabase сам поставил cookies в response), и помечаем токен consumed.
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: "pending" });
   }
 
-  // Связь есть — создаём/находим auth-юзера и magic-link.
+  // Связь есть — создаём/находим auth-юзера.
   const tgId = String(p.tg_user_id);
   const email = telegramEmail(tgId);
   const password = deriveTelegramPassword(tgId, botToken);
@@ -86,8 +88,8 @@ export async function GET(req: NextRequest) {
     await sb.auth.admin.updateUserById(authUser.id, { password, email_confirm: true });
   }
 
+  // Гарантируем профиль
   const m = (p.member_key && MEMBERS[p.member_key as MemberKey]) || MEMBERS.fedor;
-
   const { data: existing } = await sb
     .from("users")
     .select("id")
@@ -114,18 +116,31 @@ export async function GET(req: NextRequest) {
       .eq("id", authUser.id);
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() || `${url.protocol}//${url.host}`;
-  const link = await sb.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-    options: { redirectTo: `${appUrl}/dashboard` },
+  // Устанавливаем session cookies через ssr-client (response сам выставит
+  // правильные set-cookie заголовки)
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+  const supabaseAnon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+  const cookieStore = cookies();
+
+  const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = [];
+
+  const ssrClient = createServerClient(supabaseUrl, supabaseAnon, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        cookiesToSet.push({ name, value, options });
+      },
+      remove(name: string, options: CookieOptions) {
+        cookiesToSet.push({ name, value: "", options: { ...options, maxAge: 0 } });
+      },
+    },
   });
-  if (link.error || !link.data?.properties?.action_link) {
-    return NextResponse.json(
-      { error: link.error?.message ?? "no action_link" },
-      { status: 500 },
-    );
+
+  const signed = await ssrClient.auth.signInWithPassword({ email, password });
+  if (signed.error) {
+    return NextResponse.json({ error: signed.error.message }, { status: 500 });
   }
 
   // Помечаем токен использованным
@@ -134,8 +149,10 @@ export async function GET(req: NextRequest) {
     .update({ payload: { ...p, consumed: true } })
     .eq("id", row.id);
 
-  return NextResponse.json({
-    status: "ok",
-    redirect: link.data.properties.action_link,
-  });
+  // Собираем response и переносим в него все накопленные cookies
+  const response = NextResponse.json({ status: "ok" });
+  for (const c of cookiesToSet) {
+    response.cookies.set({ name: c.name, value: c.value, ...c.options });
+  }
+  return response;
 }
