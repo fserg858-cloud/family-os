@@ -36,6 +36,13 @@ export async function GET(req: NextRequest) {
     SUPABASE_SERVICE_ROLE_KEY_first10: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 10) ?? null,
     ANTHROPIC_API_KEY_set: !!process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_API_KEY_first10: process.env.ANTHROPIC_API_KEY?.slice(0, 10) ?? null,
+    TELEGRAM_BOT_TOKEN_set: !!process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_BOT_TOKEN_first10: process.env.TELEGRAM_BOT_TOKEN?.slice(0, 10) ?? null,
+    TELEGRAM_BOT_TOKEN_length: process.env.TELEGRAM_BOT_TOKEN?.length ?? 0,
+    NEXT_PUBLIC_TELEGRAM_BOT_NAME_set: !!process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME,
+    NEXT_PUBLIC_TELEGRAM_BOT_NAME_value: process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME ?? null,
+    deploy_url: process.env.VERCEL_URL ?? null,
+    git_commit_sha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
   };
 
   let listResult: any = null;
