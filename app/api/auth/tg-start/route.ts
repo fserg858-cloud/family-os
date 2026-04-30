@@ -11,12 +11,15 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME?.trim();
+  // TELEGRAM_BOT_NAME — server-only (не NEXT_PUBLIC_), runtime-видимая
+  const botName =
+    process.env.TELEGRAM_BOT_NAME?.trim() ||
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME?.trim();
   if (!botToken) {
     return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN not set" }, { status: 500 });
   }
   if (!botName) {
-    return NextResponse.json({ error: "NEXT_PUBLIC_TELEGRAM_BOT_NAME not set" }, { status: 500 });
+    return NextResponse.json({ error: "TELEGRAM_BOT_NAME not set" }, { status: 500 });
   }
 
   const body = await req.json().catch(() => ({}));

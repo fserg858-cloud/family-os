@@ -104,7 +104,7 @@ jobs:
             echo "  ✓ $key"
           }
 
-          apply_var "NEXT_PUBLIC_TELEGRAM_BOT_NAME" "$BOT_NAME"
+          apply_var "TELEGRAM_BOT_NAME"            "$BOT_NAME"
           apply_var "TELEGRAM_WEBHOOK_SECRET"      "$WS"
 
       - name: Trigger production redeploy
