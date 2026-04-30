@@ -1,0 +1,67 @@
+name: Deploy latest branch HEAD to Vercel prod
+
+# Запускается вручную. Создаёт production deployment с самым свежим
+# коммитом текущей ветки. Полезно когда git-webhook Vercel запоздал
+# или когда хочется форснуть deploy после изменения env vars.
+
+on:
+  workflow_dispatch:
+    inputs:
+      vercel_token:
+        description: "Vercel API token"
+        required: true
+        type: string
+      project_id:
+        description: "Vercel Project ID"
+        required: true
+        type: string
+        default: "prj_6HGEnF3iYrb5ktKWnHFq10AXSkrJ"
+      team_id:
+        description: "Vercel Team ID"
+        required: true
+        type: string
+        default: "team_Fk6A2aSsOaXCyyNwhoZKXWCe"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ inputs.vercel_token }}
+      PROJECT_ID:   ${{ inputs.project_id }}
+      TEAM_ID:      ${{ inputs.team_id }}
+      BRANCH:       ${{ github.ref_name }}
+    steps:
+      - name: Mask token
+        run: echo "::add-mask::$VERCEL_TOKEN"
+
+      - name: Trigger production deploy from branch HEAD
+        shell: bash
+        run: |
+          set -e
+          API="https://api.vercel.com"
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
+
+          payload=$(jq -nc --arg branch "$BRANCH" --arg project "$PROJECT_ID" \
+            '{
+              name: "family-os",
+              project: $project,
+              target: "production",
+              gitSource: {
+                type: "github",
+                ref: $branch,
+                repoId: "1224410731"
+              }
+            }')
+
+          echo "creating deployment from branch=$BRANCH"
+          resp=$(curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$API/v13/deployments?teamId=$TEAM_ID&forceNew=1")
+          dpl=$(echo "$resp" | jq -r '.id')
+          url=$(echo "$resp" | jq -r '.url')
+          echo "deployment: $dpl"
+          echo "url: https://$url"
+          echo "follow at https://vercel.com/$TEAM_ID/family-os"
