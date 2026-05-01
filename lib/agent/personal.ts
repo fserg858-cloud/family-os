@@ -178,3 +178,66 @@ export async function answerAsAssistant(userId: string, message: string): Promis
 
   return text;
 }
+
+// Ответ с фото: Claude Vision принимает image по URL, отвечает с учётом
+// контекста пользователя и подписи к фото. Сохраняем фото + AI-описание в
+// память, чтобы FAM помнил содержимое.
+export async function answerWithImage(
+  userId: string,
+  imageUrl: string,
+  caption: string,
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+
+  const ctx = await buildUserContextById(userId);
+  if (!ctx) throw new Error("user context unavailable");
+
+  const baseSystem = buildSystemPrompt(ctx);
+  const tgSystem =
+    baseSystem +
+    "\n\nКОНТЕКСТ КАНАЛА: Telegram-чат с ботом, обычный текст без Markdown. " +
+    "Сейчас пользователь прислал ФОТО. Сначала кратко (1-2 предложения) опиши что на фото, " +
+    "потом дай практичный ответ/инсайт с привязкой к контексту: привычки, цели, рефлексии, питание, " +
+    "тренировки, обстановка, эмоции — что подходит. Без преамбул, без воды.";
+
+  const userText =
+    caption.trim()
+      ? `Фото с подписью: «${caption.trim()}».`
+      : "Фото без подписи. Опиши что вижу и дай практический комментарий.";
+
+  const claude = new Anthropic({ apiKey });
+  const resp = await claude.messages.create({
+    model: "claude-opus-4-7",
+    max_tokens: 1200,
+    system: tgSystem,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "url", url: imageUrl } },
+          { type: "text", text: userText },
+        ],
+      },
+    ],
+  });
+
+  const text = resp.content
+    .filter((b: any) => b.type === "text")
+    .map((b: any) => b.text)
+    .join("\n")
+    .replace(/<!--AGENT_META[\s\S]*?-->/g, "")
+    .trim();
+
+  const sb = createAdminClient();
+  await sb.from("ai_memory").insert({
+    user_id: userId,
+    memory_type: "tg_photo",
+    content: `[фото] ${caption ? `подпись: «${caption.slice(0, 200)}» — ` : ""}AI: ${text.slice(0, 500)}`,
+    key: `tg_photo_${Date.now()}`,
+    value: imageUrl,
+    importance: 4,
+  });
+
+  return text;
+}
