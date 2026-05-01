@@ -83,7 +83,11 @@ export default async function DashboardPage() {
         </ProgressRing>
       </section>
 
-      <div className="grid grid-cols-3 gap-2 -mx-1 mb-2">
+      <div className="grid grid-cols-4 gap-2 -mx-1 mb-2">
+        <Link href="/chat" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
+          <span className="text-xl">💬</span>
+          <span className="text-[11px] text-muted">{tr("dash.shortcut.chat")}</span>
+        </Link>
         <Link href="/calendar" className="surface p-3 flex flex-col items-center gap-1 active:scale-[0.98] transition-transform">
           <span className="text-xl">📅</span>
           <span className="text-[11px] text-muted">{tr("dash.shortcut.calendar")}</span>

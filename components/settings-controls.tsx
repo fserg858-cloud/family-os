@@ -4,6 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { usePreferences } from "./preferences-provider";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/lib/i18n";
+import { ACCENTS, type AccentKey } from "@/lib/accents";
 
 export function ThemeToggle() {
   const { theme, setTheme, t } = usePreferences();
@@ -50,6 +51,56 @@ export function LocaleSwitch() {
         ))}
       </div>
     </div>
+  );
+}
+
+export function AccentSwitch() {
+  const { accent, setAccent, t } = usePreferences();
+  return (
+    <div className="surface p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] uppercase tracking-[0.16em] text-muted font-medium">
+          {t("settings.accent")}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {ACCENTS.map((a) => (
+          <AccentDot
+            key={a.key}
+            color={a.hex}
+            active={accent === a.key}
+            label={t(`settings.accent.${a.key}` as any)}
+            onClick={() => setAccent(a.key as AccentKey)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AccentDot({
+  color,
+  active,
+  label,
+  onClick,
+}: {
+  color: string;
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "w-10 h-10 rounded-full border-2 transition-transform active:scale-95",
+        active ? "border-text" : "border-transparent",
+      )}
+      style={{ background: color }}
+    />
   );
 }
 

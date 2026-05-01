@@ -27,6 +27,14 @@ const DICT = {
   "dash.shortcut.calendar": { ru: "Календарь", en: "Calendar" },
   "dash.shortcut.menu": { ru: "Меню недели", en: "Weekly menu" },
   "dash.shortcut.shopping": { ru: "Покупки", en: "Shopping" },
+  "dash.shortcut.chat": { ru: "Чат", en: "Chat" },
+
+  // Chat
+  "chat.title": { ru: "Семейный чат", en: "Family chat" },
+  "chat.subtitle": { ru: "Общение и фото — для всех участников", en: "Messages and photos — for everyone in the family" },
+  "chat.empty": { ru: "Здесь пока пусто. Напиши первое сообщение.", en: "Empty here. Send the first message." },
+  "chat.placeholder": { ru: "Сообщение…", en: "Message…" },
+  "chat.attach_photo": { ru: "Прикрепить фото", en: "Attach photo" },
 
   // Profile
   "profile.level": { ru: "Уровень", en: "Level" },
@@ -60,6 +68,12 @@ const DICT = {
   "settings.language": { ru: "Язык", en: "Language" },
   "settings.language.ru": { ru: "Русский", en: "Russian" },
   "settings.language.en": { ru: "Английский", en: "English" },
+  "settings.accent": { ru: "Акцентный цвет", en: "Accent color" },
+  "settings.accent.pink": { ru: "Розовый", en: "Pink" },
+  "settings.accent.blue": { ru: "Синий", en: "Blue" },
+  "settings.accent.green": { ru: "Зелёный", en: "Green" },
+  "settings.accent.gold": { ru: "Золотой", en: "Gold" },
+  "settings.accent.purple": { ru: "Фиолетовый", en: "Purple" },
 
   // Common
   "common.someone": { ru: "Кто-то", en: "Someone" },

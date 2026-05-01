@@ -25,6 +25,13 @@
   color-scheme: light;
 }
 
+/* Accent palette — переопределяет --accent независимо от темы. */
+[data-accent="pink"]   { --accent: 255 107 138; } /* #FF6B8A */
+[data-accent="blue"]   { --accent: 74 144 217; }  /* #4A90D9 */
+[data-accent="green"]  { --accent: 76 175 80; }   /* #4CAF50 */
+[data-accent="gold"]   { --accent: 201 168 76; }  /* #C9A84C */
+[data-accent="purple"] { --accent: 155 89 182; }  /* #9B59B6 */
+
 :root {
   --safe-bottom: env(safe-area-inset-bottom);
 }
