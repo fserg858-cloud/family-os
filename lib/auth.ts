@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
-import { MEMBERS, type MemberKey, type UiProfile } from "./members";
+import type { UiProfile } from "./members";
 
 export interface AppUser {
   id: string;
   email: string;
-  member_key: MemberKey;
+  member_key: string;
   display_name: string;
   age: number | null;
   ui_profile: UiProfile;
@@ -24,21 +24,20 @@ export async function requireUser(): Promise<AppUser> {
 
   let { data } = await supabase.from("users").select("*").eq("id", user.id).single();
 
-  // Auth-пользователь есть, но нет profile-row — пробуем восстановить из metadata,
+  // Auth-пользователь есть, но profile-row нет — восстанавливаем из metadata,
   // чтобы не было redirect-loop /dashboard ↔ /register.
   if (!data) {
     const meta = (user.user_metadata ?? {}) as { member_key?: string; display_name?: string };
-    const key = (meta.member_key as MemberKey) || "fedor";
-    const m = MEMBERS[key] ?? MEMBERS.fedor;
+    const memberKey = meta.member_key || `user-${user.id.slice(0, 8)}`;
+    const displayName = meta.display_name || user.email?.split("@")[0] || "User";
     const { data: created, error } = await supabase
       .from("users")
       .insert({
         id: user.id,
         email: user.email ?? "",
-        member_key: m.key,
-        display_name: meta.display_name || m.display_name,
-        age: m.age,
-        ui_profile: m.ui_profile,
+        member_key: memberKey,
+        display_name: displayName,
+        ui_profile: "default",
       })
       .select()
       .single();

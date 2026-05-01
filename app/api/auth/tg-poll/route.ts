@@ -3,7 +3,6 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deriveTelegramPassword, telegramEmail } from "@/lib/telegram";
-import { MEMBERS, type MemberKey } from "@/lib/members";
 
 export const runtime = "nodejs";
 
@@ -63,6 +62,8 @@ export async function GET(req: NextRequest) {
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || `tg_${tgId}`;
 
+  const memberKey = `tg-${tgId}`;
+
   if (!authUser) {
     const created = await sb.auth.admin.createUser({
       email,
@@ -74,7 +75,8 @@ export async function GET(req: NextRequest) {
         first_name: firstName,
         last_name: lastName,
         username: p.tg_username ?? null,
-        member_key: p.member_key ?? "fedor",
+        member_key: memberKey,
+        display_name: displayName,
       },
     });
     if (created.error || !created.data.user) {
@@ -89,7 +91,6 @@ export async function GET(req: NextRequest) {
   }
 
   // Гарантируем профиль
-  const m = (p.member_key && MEMBERS[p.member_key as MemberKey]) || MEMBERS.fedor;
   const { data: existing } = await sb
     .from("users")
     .select("id")
@@ -99,21 +100,10 @@ export async function GET(req: NextRequest) {
     await sb.from("users").insert({
       id: authUser.id,
       email,
-      member_key: m.key,
+      member_key: memberKey,
       display_name: displayName,
-      age: m.age,
-      ui_profile: m.ui_profile,
+      ui_profile: "default",
     });
-  } else if (p.member_key) {
-    await sb
-      .from("users")
-      .update({
-        member_key: m.key,
-        display_name: displayName,
-        age: m.age,
-        ui_profile: m.ui_profile,
-      })
-      .eq("id", authUser.id);
   }
 
   // Устанавливаем session cookies через ssr-client (response сам выставит

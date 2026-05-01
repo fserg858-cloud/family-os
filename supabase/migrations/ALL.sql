@@ -564,3 +564,9 @@ returns void language sql as $$
       used_count = coalesce(used_count, 0) + 1
   where id = p_id;
 $$;
+
+-- ============================================================
+-- 007_open_registration.sql
+-- ============================================================
+
+alter table public.users drop constraint if exists users_member_key_check;

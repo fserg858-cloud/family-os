@@ -102,9 +102,9 @@ const DICT = {
   "auth.no_account": { ru: "Нет аккаунта?", en: "No account?" },
   "auth.register": { ru: "Зарегистрироваться", en: "Sign up" },
   "auth.have_account": { ru: "Уже есть аккаунт?", en: "Already have an account?" },
-  "auth.who_are_you": { ru: "Кто ты в семье?", en: "Who are you in the family?" },
-  "auth.choose_avatar": { ru: "Выбери свой аватар", en: "Pick your avatar" },
   "auth.or_email": { ru: "или email", en: "or email" },
+  "auth.name": { ru: "Имя", en: "Name" },
+  "auth.name_placeholder": { ru: "Как тебя зовут", en: "Your name" },
   "auth.password_placeholder": { ru: "Минимум 6 символов", en: "Min 6 characters" },
   "auth.create_account": { ru: "Создать аккаунт", en: "Create account" },
   "auth.creating": { ru: "Создание...", en: "Creating..." },
@@ -451,26 +451,30 @@ export function dateLocale(locale: Locale): string {
 
 export function translateRole(memberKey: string | null | undefined, locale: Locale): string {
   if (!memberKey) return "";
-  const k = `member.role.${memberKey}` as TKey;
-  return t(k, locale);
+  const k = `member.role.${memberKey}`;
+  if (!(k in DICT)) return "";
+  return t(k as TKey, locale);
 }
 
 export function translateTaskCategory(catKey: string | null | undefined, locale: Locale): string {
   if (!catKey) return "";
-  const k = `task_category.${catKey}` as TKey;
-  return t(k, locale);
+  const k = `task_category.${catKey}`;
+  if (!(k in DICT)) return catKey;
+  return t(k as TKey, locale);
 }
 
 export function translateTaskPriority(pKey: string | null | undefined, locale: Locale): string {
   if (!pKey) return "";
-  const k = `task_priority.${pKey}` as TKey;
-  return t(k, locale);
+  const k = `task_priority.${pKey}`;
+  if (!(k in DICT)) return pKey;
+  return t(k as TKey, locale);
 }
 
 export function translateShoppingCategory(catKey: string | null | undefined, locale: Locale): string {
   if (!catKey) return "";
-  const k = `shopping_category.${catKey}` as TKey;
-  return t(k, locale);
+  const k = `shopping_category.${catKey}`;
+  if (!(k in DICT)) return catKey;
+  return t(k as TKey, locale);
 }
 
 export function translateGoalHorizon(h: string | null | undefined, locale: Locale): string {
