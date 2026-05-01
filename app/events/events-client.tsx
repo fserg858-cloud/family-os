@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { getMember } from "@/lib/members";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/components/preferences-provider";
+import { describeEvent, dateLocale, t as translate, type TKey } from "@/lib/i18n";
 
 interface Member {
   id: string;
   display_name: string;
   member_key: string;
 }
-
-const WEEKDAY = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 
 function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -26,6 +26,8 @@ export function EventsClient({
   tasks: any[];
   members: Member[];
 }) {
+  const { locale } = usePreferences();
+  const tr = (k: TKey) => translate(k, locale);
   const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
   const days = useMemo(() => {
@@ -40,8 +42,12 @@ export function EventsClient({
 
   const [selected, setSelected] = useState<string>(dayKey(new Date()));
 
-  const dayEvents = events.filter((e) => dayKey(new Date(e.created_at)) === selected);
+  const dayEvents = events
+    .filter((e) => dayKey(new Date(e.created_at)) === selected)
+    .map((e) => ({ ...e, _desc: describeEvent(e, locale) }))
+    .filter((e) => e._desc);
   const dayTasks = tasks.filter((t) => t.due_at && dayKey(new Date(t.due_at)) === selected);
+  const dl = dateLocale(locale);
 
   return (
     <div>
@@ -59,7 +65,7 @@ export function EventsClient({
                 active ? "bg-accent text-white" : "bg-surface text-text",
               )}
             >
-              <span className="opacity-70 capitalize">{WEEKDAY[d.getDay()]}</span>
+              <span className="opacity-70 capitalize">{tr(`weekday.${d.getDay()}` as TKey)}</span>
               <span className={cn("text-lg font-semibold", isToday && !active && "text-accent")}>
                 {d.getDate()}
               </span>
@@ -69,10 +75,12 @@ export function EventsClient({
       </div>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6 mb-3">
-        События
+        {tr("events.section")}
       </h3>
       <div className="space-y-2">
-        {dayEvents.length === 0 && <div className="surface p-4 text-center text-sm text-muted">Тихо</div>}
+        {dayEvents.length === 0 && (
+          <div className="surface p-4 text-center text-sm text-muted">{tr("events.empty")}</div>
+        )}
         {dayEvents.map((e, i) => {
           const actor = e.actor_id ? memberMap.get(e.actor_id) : null;
           const def = actor ? getMember(actor.member_key) : null;
@@ -88,12 +96,12 @@ export function EventsClient({
               <div className="flex-1 min-w-0">
                 <div className="text-sm">
                   <span className="font-medium" style={{ color: def?.color ?? "#FFF" }}>
-                    {actor?.display_name ?? "Кто-то"}
+                    {actor?.display_name ?? tr("common.someone")}
                   </span>{" "}
-                  <span className="text-muted">{describeEvent(e)}</span>
+                  <span className="text-muted">{e._desc}</span>
                 </div>
                 <div className="text-[10px] text-muted mt-0.5">
-                  {new Date(e.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(e.created_at).toLocaleTimeString(dl, { hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
             </motion.div>
@@ -102,10 +110,12 @@ export function EventsClient({
       </div>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6 mb-3">
-        Задачи дня
+        {tr("events.day_tasks")}
       </h3>
       <div className="space-y-2">
-        {dayTasks.length === 0 && <div className="surface p-4 text-center text-sm text-muted">Задач нет</div>}
+        {dayTasks.length === 0 && (
+          <div className="surface p-4 text-center text-sm text-muted">{tr("events.no_tasks")}</div>
+        )}
         {dayTasks.map((t) => {
           const ass = t.assigned_to ? memberMap.get(t.assigned_to) : null;
           const def = ass ? getMember(ass.member_key) : null;
@@ -120,8 +130,8 @@ export function EventsClient({
                   {t.title}
                 </div>
                 <div className="text-[11px] text-muted">
-                  {new Date(t.due_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })} ·{" "}
-                  {ass?.display_name ?? "Любой"}
+                  {new Date(t.due_at).toLocaleTimeString(dl, { hour: "2-digit", minute: "2-digit" })} ·{" "}
+                  {ass?.display_name ?? tr("events.any")}
                 </div>
               </div>
             </div>
@@ -130,23 +140,4 @@ export function EventsClient({
       </div>
     </div>
   );
-}
-
-function describeEvent(e: any) {
-  switch (e.kind) {
-    case "habit_logged":
-      return `закрыл привычку «${e.payload?.title ?? ""}»`;
-    case "task_completed":
-      return `выполнил задачу «${e.payload?.title ?? ""}»`;
-    case "task_created":
-      return `добавил задачу «${e.payload?.title ?? ""}»`;
-    case "reflection_saved":
-      return "записал рефлексию";
-    case "goal_completed":
-      return `достиг цели «${e.payload?.title ?? ""}»`;
-    case "shopping_added":
-      return `добавил в список «${e.payload?.item ?? ""}»`;
-    default:
-      return e.kind;
-  }
 }

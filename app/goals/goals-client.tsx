@@ -7,6 +7,8 @@ import { Plus, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { usePreferences } from "@/components/preferences-provider";
+import { translateGoalHorizon } from "@/lib/i18n";
 
 interface Goal {
   id: string;
@@ -17,15 +19,11 @@ interface Goal {
   status: "active" | "done" | "paused";
 }
 
-const HORIZON_LABEL: Record<Goal["horizon"], string> = {
-  daily: "День",
-  weekly: "Неделя",
-  monthly: "Месяц",
-  yearly: "Год",
-};
+const HORIZONS: Goal["horizon"][] = ["daily", "weekly", "monthly", "yearly"];
 
 export function GoalsClient({ initial }: { initial: Goal[] }) {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const [goals, setGoals] = useState<Goal[]>(initial);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({
@@ -79,7 +77,7 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
     <div>
       <div className="flex justify-end mb-3">
         <Button onClick={() => setAdding((v) => !v)} variant={adding ? "ghost" : "primary"} size="sm">
-          <Plus size={14} /> {adding ? "Отмена" : "Новая цель"}
+          <Plus size={14} /> {adding ? t("common.cancel") : t("goals.new")}
         </Button>
       </div>
 
@@ -93,49 +91,49 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
             className="surface p-4 mb-4 space-y-3 overflow-hidden"
           >
             <div>
-              <Label>Цель</Label>
+              <Label>{t("goals.form.name")}</Label>
               <Input
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Подтянуться 10 раз"
+                placeholder={t("goals.form.name_placeholder")}
               />
             </div>
             <div>
-              <Label>Горизонт</Label>
+              <Label>{t("goals.form.horizon")}</Label>
               <Select
                 value={form.horizon}
                 onChange={(e) => setForm({ ...form, horizon: e.target.value as Goal["horizon"] })}
               >
-                <option value="daily">Дневная</option>
-                <option value="weekly">Недельная</option>
-                <option value="monthly">Месячная</option>
-                <option value="yearly">Годовая</option>
+                <option value="daily">{translateGoalHorizon("daily", locale)}</option>
+                <option value="weekly">{translateGoalHorizon("weekly", locale)}</option>
+                <option value="monthly">{translateGoalHorizon("monthly", locale)}</option>
+                <option value="yearly">{translateGoalHorizon("yearly", locale)}</option>
               </Select>
             </div>
             <div>
-              <Label>Описание</Label>
+              <Label>{t("goals.form.description")}</Label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Зачем и как пойму, что достигнута"
+                placeholder={t("goals.form.description_placeholder")}
               />
             </div>
             <Button type="submit" block>
-              Сохранить
+              {t("common.save")}
             </Button>
           </motion.form>
         )}
       </AnimatePresence>
 
       <div className="space-y-6">
-        {(Object.keys(HORIZON_LABEL) as Goal["horizon"][]).map((h) => (
+        {HORIZONS.map((h) => (
           <section key={h}>
             <div className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-2">
-              {HORIZON_LABEL[h]}
+              {translateGoalHorizon(h, locale)}
             </div>
             <div className="space-y-2">
-              {grouped[h].length === 0 && <div className="text-muted text-sm">Нет целей</div>}
+              {grouped[h].length === 0 && <div className="text-muted text-sm">{t("goals.empty")}</div>}
               {grouped[h].map((g) => (
                 <div key={g.id} className="surface p-3">
                   <div className="flex items-start gap-3">
@@ -166,7 +164,7 @@ export function GoalsClient({ initial }: { initial: Goal[] }) {
                     <button
                       onClick={() => remove(g.id)}
                       className="text-muted hover:text-danger p-1"
-                      aria-label="Удалить"
+                      aria-label={t("common.delete")}
                     >
                       <Trash2 size={14} />
                     </button>

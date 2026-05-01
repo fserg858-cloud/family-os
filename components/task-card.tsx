@@ -6,6 +6,8 @@ import { Check, Trash2 } from "lucide-react";
 import { MemberAvatar } from "./member-avatar";
 import { CategoryBadge } from "./category-badge";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "./preferences-provider";
+import { dateLocale } from "@/lib/i18n";
 
 export interface TaskCardData {
   id: string;
@@ -33,13 +35,13 @@ const PRIORITY_DOT: Record<NonNullable<TaskCardData["priority"]>, string> = {
   high: "#FF3B30",
 };
 
-function formatTime(iso?: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-}
-
 export function TaskCard({ task, memberKey, onComplete, onDelete, swipe = true }: Props) {
+  const { t, locale } = usePreferences();
+  const formatTime = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleTimeString(dateLocale(locale), { hour: "2-digit", minute: "2-digit" });
+  };
   const x = useMotionValue(0);
   const bg = useTransform(
     x,
@@ -70,10 +72,10 @@ export function TaskCard({ task, memberKey, onComplete, onDelete, swipe = true }
       >
         <div className="flex items-center gap-2">
           <Check size={18} />
-          Готово
+          {t("tasks.swipe.done")}
         </div>
         <div className="flex items-center gap-2">
-          Удалить
+          {t("tasks.swipe.delete")}
           <Trash2 size={18} />
         </div>
       </motion.div>
@@ -96,7 +98,7 @@ export function TaskCard({ task, memberKey, onComplete, onDelete, swipe = true }
             "shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors",
             done ? "bg-success border-success text-white" : "border-muted",
           )}
-          aria-label="Готово"
+          aria-label={t("common.done")}
         >
           {done && <Check size={16} />}
         </button>

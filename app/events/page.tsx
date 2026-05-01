@@ -2,6 +2,8 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { EventsClient } from "./events-client";
+import { getServerLocale } from "@/lib/preferences";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +29,12 @@ export default async function EventsPage() {
     supabase.from("users").select("id, display_name, member_key"),
   ]);
 
+  const locale = getServerLocale();
   return (
     <AppShell user={user}>
       <header className="pt-2 pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">События</h1>
-        <p className="text-xs text-muted mt-1">Что происходит в семье на неделе</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("events.title", locale)}</h1>
+        <p className="text-xs text-muted mt-1">{t("events.subtitle", locale)}</p>
       </header>
       <EventsClient
         events={events ?? []}

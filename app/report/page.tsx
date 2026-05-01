@@ -6,6 +6,8 @@ import { MemberAvatar } from "@/components/member-avatar";
 import { Progress } from "@/components/ui/progress";
 import { xpProgress } from "@/lib/xp";
 import { getMember } from "@/lib/members";
+import { getServerLocale } from "@/lib/preferences";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -36,15 +38,16 @@ export default async function ReportPage() {
       .order("xp", { ascending: false }),
   ]);
 
+  const locale = getServerLocale();
   return (
     <AppShell user={user}>
       <header className="pt-2 pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Отчёт недели</h1>
-        <p className="text-xs text-muted mt-1">с {weekStart}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("report.title", locale)}</h1>
+        <p className="text-xs text-muted mt-1">{t("report.from_date", locale)} {weekStart}</p>
       </header>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-        Семья
+        {t("report.family", locale)}
       </h3>
       <div className="space-y-2 mb-6">
         {(members ?? []).map((m: any) => {
@@ -66,7 +69,7 @@ export default async function ReportPage() {
       </div>
 
       <div className="surface p-4 mb-6">
-        <div className="text-[11px] text-muted uppercase tracking-widest">События недели</div>
+        <div className="text-[11px] text-muted uppercase tracking-widest">{t("report.events_week", locale)}</div>
         <div className="text-3xl font-semibold mt-1">{(events ?? []).length}</div>
       </div>
 

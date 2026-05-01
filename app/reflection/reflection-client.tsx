@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label } from "@/components/ui/input";
+import { usePreferences } from "@/components/preferences-provider";
 
 interface Reflection {
   id: string;
@@ -17,6 +18,7 @@ interface Reflection {
 
 export function ReflectionClient({ existing }: { existing: Reflection | null }) {
   const router = useRouter();
+  const { t } = usePreferences();
   const [win, setWin] = useState(existing?.win ?? "");
   const [lesson, setLesson] = useState(existing?.lesson ?? "");
   const [next, setNext] = useState(existing?.next_step ?? "");
@@ -42,7 +44,7 @@ export function ReflectionClient({ existing }: { existing: Reflection | null }) 
   return (
     <div className="space-y-3">
       <div className="surface p-4">
-        <Label>Настроение</Label>
+        <Label>{t("reflection.mood")}</Label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -59,27 +61,27 @@ export function ReflectionClient({ existing }: { existing: Reflection | null }) 
       </div>
 
       <div className="surface p-4">
-        <Label>Главная победа дня</Label>
-        <Textarea value={win} onChange={(e) => setWin(e.target.value)} placeholder="Что я сделал лучше" />
+        <Label>{t("reflection.win")}</Label>
+        <Textarea value={win} onChange={(e) => setWin(e.target.value)} placeholder={t("reflection.win_placeholder")} />
       </div>
       <div className="surface p-4">
-        <Label>Главный урок</Label>
-        <Textarea value={lesson} onChange={(e) => setLesson(e.target.value)} placeholder="Что я понял" />
+        <Label>{t("reflection.lesson")}</Label>
+        <Textarea value={lesson} onChange={(e) => setLesson(e.target.value)} placeholder={t("reflection.lesson_placeholder")} />
       </div>
       <div className="surface p-4">
-        <Label>Шаг на завтра</Label>
-        <Textarea value={next} onChange={(e) => setNext(e.target.value)} placeholder="Конкретное действие" />
+        <Label>{t("reflection.step")}</Label>
+        <Textarea value={next} onChange={(e) => setNext(e.target.value)} placeholder={t("reflection.step_placeholder")} />
       </div>
 
       <Button onClick={save} disabled={busy} block size="lg">
-        {busy ? "Сохраняю..." : "Сохранить и получить инсайт"}
+        {busy ? t("common.saving") : t("reflection.submit")}
       </Button>
 
       {insight && (
         <div className="surface p-4">
           <div className="flex items-center gap-2 text-accent mb-2">
             <Sparkles size={14} />
-            <span className="text-[11px] uppercase tracking-[0.16em]">AI инсайт</span>
+            <span className="text-[11px] uppercase tracking-[0.16em]">{t("reflection.ai_insight")}</span>
           </div>
           <div className="text-[13px] whitespace-pre-wrap leading-relaxed">{insight}</div>
         </div>

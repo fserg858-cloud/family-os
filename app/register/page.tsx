@@ -10,9 +10,12 @@ import { Input, Label } from "@/components/ui/input";
 import { MEMBER_LIST, MEMBERS, type MemberKey } from "@/lib/members";
 import { cn } from "@/lib/utils";
 import { TelegramButton } from "@/components/telegram-button";
+import { usePreferences } from "@/components/preferences-provider";
+import { translateRole } from "@/lib/i18n";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [memberKey, setMemberKey] = useState<MemberKey>("fedor");
@@ -71,8 +74,8 @@ export default function RegisterPage() {
         className="w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Кто ты в семье?</h1>
-          <p className="text-sm text-muted mt-2">Выбери свой аватар</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("auth.who_are_you")}</h1>
+          <p className="text-sm text-muted mt-2">{t("auth.choose_avatar")}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -98,7 +101,7 @@ export default function RegisterPage() {
                 <div className="text-[12px] font-medium" style={{ color: active ? m.color : "#FFF" }}>
                   {m.display_name}
                 </div>
-                <div className="text-[10px] text-muted -mt-1">{m.role}</div>
+                <div className="text-[10px] text-muted -mt-1">{translateRole(m.key, locale)}</div>
               </button>
             );
           })}
@@ -110,7 +113,7 @@ export default function RegisterPage() {
 
         <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted uppercase tracking-widest">или email</span>
+          <span className="text-xs text-muted uppercase tracking-widest">{t("auth.or_email")}</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
@@ -126,14 +129,14 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <Label>Пароль</Label>
+            <Label>{t("common.password")}</Label>
             <Input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Минимум 6 символов"
+              placeholder={t("auth.password_placeholder")}
             />
           </div>
 
@@ -144,14 +147,14 @@ export default function RegisterPage() {
           )}
 
           <Button type="submit" disabled={loading} block size="lg">
-            {loading ? "Создание..." : "Создать аккаунт"}
+            {loading ? t("auth.creating") : t("auth.create_account")}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-muted">
-          Уже есть аккаунт?{" "}
+          {t("auth.have_account")}{" "}
           <Link href="/login" className="text-accent">
-            Войти
+            {t("auth.login")}
           </Link>
         </div>
       </motion.div>

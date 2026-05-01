@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, MapPin, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { usePreferences } from "@/components/preferences-provider";
+import { dateLocale, type Locale } from "@/lib/i18n";
 
 interface CalendarEvent {
   id: string;
@@ -16,9 +18,9 @@ interface CalendarEvent {
   created_by?: string | null;
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string, locale: Locale): string {
   const d = new Date(iso);
-  return d.toLocaleString("ru-RU", {
+  return d.toLocaleString(dateLocale(locale), {
     day: "2-digit",
     month: "long",
     weekday: "short",
@@ -34,6 +36,7 @@ function toLocalInputValue(iso: string): string {
 }
 
 export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
+  const { t, locale } = usePreferences();
   const [events, setEvents] = useState<CalendarEvent[]>(initial);
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,7 +59,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
 
   async function add() {
     if (!title.trim() || !startsAt) {
-      setError("Введите название и время");
+      setError(t("calendar.error_required"));
       return;
     }
     setBusy(true);
@@ -73,7 +76,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
         }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error ?? "ошибка");
+      if (!r.ok) throw new Error(data.error ?? t("calendar.error_generic"));
       setEvents((prev) =>
         [...prev, data].sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
       );
@@ -87,7 +90,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
   }
 
   async function remove(id: string) {
-    if (!confirm("Удалить событие?")) return;
+    if (!confirm(t("calendar.confirm_delete"))) return;
     const prev = events;
     setEvents((es) => es.filter((e) => e.id !== id));
     try {
@@ -103,7 +106,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
       {!showForm && (
         <Button onClick={() => setShowForm(true)} block size="lg">
           <CalendarPlus size={18} />
-          Новое событие
+          {t("calendar.new")}
         </Button>
       )}
 
@@ -116,15 +119,15 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
             className="surface p-4 space-y-3"
           >
             <div>
-              <Label>Название</Label>
+              <Label>{t("calendar.form.title")}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Например: ужин у бабушки"
+                placeholder={t("calendar.form.title_placeholder")}
               />
             </div>
             <div>
-              <Label>Когда</Label>
+              <Label>{t("calendar.form.when")}</Label>
               <Input
                 type="datetime-local"
                 value={startsAt}
@@ -132,19 +135,19 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
               />
             </div>
             <div>
-              <Label>Место (необязательно)</Label>
+              <Label>{t("calendar.form.location")}</Label>
               <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Например: дом бабушки"
+                placeholder={t("calendar.form.location_placeholder")}
               />
             </div>
             <div>
-              <Label>Заметка</Label>
+              <Label>{t("calendar.form.note")}</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Подробности, что взять, кто едет..."
+                placeholder={t("calendar.form.note_placeholder")}
               />
             </div>
             {error && (
@@ -154,7 +157,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
             )}
             <div className="flex gap-2">
               <Button onClick={add} disabled={busy} className="flex-1">
-                {busy ? "Сохраняю…" : "Сохранить"}
+                {busy ? t("common.saving") : t("common.save")}
               </Button>
               <Button
                 onClick={() => {
@@ -163,7 +166,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
                 }}
                 variant="ghost"
               >
-                Отмена
+                {t("common.cancel")}
               </Button>
             </div>
           </motion.div>
@@ -171,12 +174,12 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
       </AnimatePresence>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-2">
-        Ближайшие события
+        {t("calendar.upcoming")}
       </h3>
 
       {events.length === 0 ? (
         <div className="surface p-6 text-center text-sm text-muted">
-          Пока ничего не запланировано. Добавь первое событие — за 24ч и за 1ч придёт напоминание в Telegram всем участникам.
+          {t("calendar.empty")}
         </div>
       ) : (
         <div className="space-y-2">
@@ -193,7 +196,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
                   <div className="font-semibold">{e.title}</div>
                   <div className="text-xs text-muted mt-1 flex items-center gap-1">
                     <Clock size={12} />
-                    {formatDateTime(e.starts_at)}
+                    {formatDateTime(e.starts_at, locale)}
                   </div>
                   {e.location && (
                     <div className="text-xs text-muted mt-1 flex items-center gap-1">
@@ -206,7 +209,7 @@ export function CalendarClient({ initial }: { initial: CalendarEvent[] }) {
                 <button
                   onClick={() => remove(e.id)}
                   className="text-muted hover:text-danger p-1 -m-1"
-                  aria-label="Удалить"
+                  aria-label={t("common.delete")}
                 >
                   <Trash2 size={16} />
                 </button>

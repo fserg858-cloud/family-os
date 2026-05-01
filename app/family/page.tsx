@@ -2,6 +2,8 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { FamilyClient } from "./family-client";
+import { getServerLocale } from "@/lib/preferences";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +22,12 @@ export default async function FamilyPage({
     supabase.from("family_tasks").select("*").order("created_at", { ascending: false }).limit(80),
   ]);
 
+  const locale = getServerLocale();
   return (
     <AppShell user={user}>
       <header className="pt-2 pb-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Семья</h1>
-        <p className="text-xs text-muted mt-1">Выбери участника, чтобы увидеть его задачи и прогресс</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("family.title", locale)}</h1>
+        <p className="text-xs text-muted mt-1">{t("family.subtitle", locale)}</p>
       </header>
       <FamilyClient
         members={members ?? []}

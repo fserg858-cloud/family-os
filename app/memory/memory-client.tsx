@@ -6,11 +6,13 @@ import { Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { PatternCard } from "@/components/agent/PatternCard";
 import { Button } from "@/components/ui/button";
 import type { AgentDecision, AgentPattern } from "@/lib/agent/types";
+import { usePreferences } from "@/components/preferences-provider";
+import { dateLocale, type TKey } from "@/lib/i18n";
 
-const OUTCOME_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  positive: { bg: "#4CAF5022", color: "#4CAF50", label: "Полезно" },
-  negative: { bg: "#FF3B3022", color: "#FF3B30", label: "Бесполезно" },
-  pending: { bg: "#8E8E9322", color: "#8E8E93", label: "Не оценено" },
+const OUTCOME_STYLE: Record<string, { bg: string; color: string; labelKey: TKey }> = {
+  positive: { bg: "#4CAF5022", color: "#4CAF50", labelKey: "memory.useful" },
+  negative: { bg: "#FF3B3022", color: "#FF3B30", labelKey: "memory.useless" },
+  pending: { bg: "#8E8E9322", color: "#8E8E93", labelKey: "memory.unrated" },
 };
 
 interface MemoryRow {
@@ -31,6 +33,7 @@ export function MemoryClient({
   initialDecisions: AgentDecision[];
   initialInsights: MemoryRow[];
 }) {
+  const { t, locale } = usePreferences();
   const [patterns, setPatterns] = useState(initialPatterns);
   const [decisions, setDecisions] = useState(initialDecisions);
   const [insights, setInsights] = useState(initialInsights);
@@ -73,7 +76,7 @@ export function MemoryClient({
   }
 
   async function clearAll() {
-    if (!confirm("Удалить ВСЕ паттерны, решения и память? Это необратимо.")) return;
+    if (!confirm(t("memory.confirm_clear"))) return;
     setBusy(true);
     await fetch("/api/agent/memory", {
       method: "DELETE",
@@ -90,12 +93,12 @@ export function MemoryClient({
     <div className="space-y-6">
       <section>
         <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-          Мои паттерны
+          {t("memory.patterns")}
         </h3>
         <div className="space-y-2">
           {patterns.length === 0 && (
             <div className="surface p-4 text-center text-sm text-muted">
-              Паттерны накапливаются по мере использования
+              {t("memory.patterns_empty")}
             </div>
           )}
           <AnimatePresence mode="popLayout">
@@ -116,11 +119,11 @@ export function MemoryClient({
 
       <section>
         <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-          Сохранённые решения
+          {t("memory.decisions")}
         </h3>
         <div className="space-y-2">
           {decisions.length === 0 && (
-            <div className="surface p-4 text-center text-sm text-muted">Решений пока нет</div>
+            <div className="surface p-4 text-center text-sm text-muted">{t("memory.decisions_empty")}</div>
           )}
           <AnimatePresence mode="popLayout">
             {decisions.map((d) => {
@@ -139,16 +142,16 @@ export function MemoryClient({
                       className="text-[10px] px-2 py-0.5 rounded-full"
                       style={{ background: style.bg, color: style.color }}
                     >
-                      {style.label}
+                      {t(style.labelKey)}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted">
-                        исп. {d.used_count ?? 0}
+                        {t("memory.used_times")} {d.used_count ?? 0}
                       </span>
                       <button
                         onClick={() => deleteDecision(d.id)}
                         className="text-muted hover:text-danger p-1"
-                        aria-label="Удалить"
+                        aria-label={t("common.delete")}
                       >
                         <Trash2 size={12} />
                       </button>
@@ -162,10 +165,10 @@ export function MemoryClient({
                   </div>
                   <div className="flex gap-2 mt-2">
                     <Button size="sm" variant="ghost" onClick={() => rate(d.id, "positive")}>
-                      <ThumbsUp size={12} /> Полезно
+                      <ThumbsUp size={12} /> {t("memory.useful")}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => rate(d.id, "negative")}>
-                      <ThumbsDown size={12} /> Бесполезно
+                      <ThumbsDown size={12} /> {t("memory.useless")}
                     </Button>
                   </div>
                 </motion.div>
@@ -177,17 +180,17 @@ export function MemoryClient({
 
       <section>
         <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-          История памяти
+          {t("memory.history")}
         </h3>
         <div className="space-y-2">
           {insights.length === 0 && (
-            <div className="surface p-4 text-center text-sm text-muted">Записей нет</div>
+            <div className="surface p-4 text-center text-sm text-muted">{t("memory.history_empty")}</div>
           )}
           {insights.map((m) => (
             <div key={m.id} className="surface p-3 flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-muted">
-                  {m.memory_type ?? m.key ?? "fact"} · {new Date(m.created_at).toLocaleDateString("ru-RU")}
+                  {m.memory_type ?? m.key ?? "fact"} · {new Date(m.created_at).toLocaleDateString(dateLocale(locale))}
                 </div>
                 <div className="text-[13px] mt-1 line-clamp-3 whitespace-pre-wrap">
                   {m.content ?? m.value ?? ""}
@@ -196,7 +199,7 @@ export function MemoryClient({
               <button
                 onClick={() => deleteMemory(m.id)}
                 className="text-muted hover:text-danger p-1"
-                aria-label="Удалить"
+                aria-label={t("common.delete")}
               >
                 <Trash2 size={14} />
               </button>
@@ -206,7 +209,7 @@ export function MemoryClient({
       </section>
 
       <Button onClick={clearAll} disabled={busy} variant="danger" block>
-        <Trash2 size={14} /> Очистить всю память
+        <Trash2 size={14} /> {t("memory.clear_all")}
       </Button>
     </div>
   );

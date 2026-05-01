@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import type { ProactiveMessage as ProactiveMessageT } from "@/lib/agent/types";
+import { usePreferences } from "../preferences-provider";
 
 export function ProactiveMessage({
   message,
@@ -15,10 +16,11 @@ export function ProactiveMessage({
   onRead: (id: string) => void;
   onDismiss: (id: string) => void;
 }) {
-  // Автоисчезание через 10 секунд (только пометка прочитанным, не удаление)
+  const { t } = usePreferences();
+  // Авто-mark-as-read через 10 секунд
   useEffect(() => {
-    const t = setTimeout(() => onRead(message.id), 10000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => onRead(message.id), 10000);
+    return () => clearTimeout(timer);
   }, [message.id, onRead]);
 
   return (
@@ -45,21 +47,21 @@ export function ProactiveMessage({
                 }}
                 className="px-3 py-1.5 rounded-lg bg-surface2 text-xs text-text"
               >
-                Понял
+                {t("proactive.got_it")}
               </button>
               <Link
                 href="/assistant"
                 onClick={() => onRead(message.id)}
                 className="px-3 py-1.5 rounded-lg bg-accent text-xs text-white"
               >
-                Открыть чат
+                {t("proactive.open_chat")}
               </Link>
             </div>
           </div>
           <button
             onClick={() => onDismiss(message.id)}
             className="text-muted hover:text-text p-1"
-            aria-label="Закрыть"
+            aria-label={t("proactive.close")}
           >
             <X size={16} />
           </button>

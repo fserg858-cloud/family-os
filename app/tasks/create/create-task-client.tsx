@@ -13,6 +13,8 @@ import {
   getMember,
 } from "@/lib/members";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/components/preferences-provider";
+import { translateTaskCategory, translateTaskPriority } from "@/lib/i18n";
 
 interface Member {
   id: string;
@@ -28,6 +30,7 @@ export function CreateTaskClient({
   currentUserId: string;
 }) {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [assignees, setAssignees] = useState<string[]>([currentUserId]);
@@ -67,7 +70,7 @@ export function CreateTaskClient({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setErr(data.error ?? "Ошибка");
+      setErr(data.error ?? t("common.error"));
       return;
     }
     router.push("/tasks");
@@ -77,26 +80,26 @@ export function CreateTaskClient({
   return (
     <form onSubmit={submit} className="space-y-5 pb-10">
       <div>
-        <Label>Название</Label>
+        <Label>{t("task.form.title")}</Label>
         <Input
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Помыть посуду"
+          placeholder={t("task.form.title_placeholder")}
         />
       </div>
 
       <div>
-        <Label>Заметка</Label>
+        <Label>{t("task.form.note")}</Label>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Детали, контекст, ссылки"
+          placeholder={t("task.form.note_placeholder")}
         />
       </div>
 
       <div>
-        <Label>Кому</Label>
+        <Label>{t("task.form.assignee")}</Label>
         <div className="flex gap-2 flex-wrap">
           {members.map((m) => {
             const def = getMember(m.member_key);
@@ -123,7 +126,7 @@ export function CreateTaskClient({
       </div>
 
       <div>
-        <Label>Срок</Label>
+        <Label>{t("task.form.due")}</Label>
         <Input
           type="datetime-local"
           value={dueAt}
@@ -132,7 +135,7 @@ export function CreateTaskClient({
       </div>
 
       <div>
-        <Label>Категория</Label>
+        <Label>{t("task.form.category")}</Label>
         <div className="grid grid-cols-3 gap-2">
           {TASK_CATEGORIES.map((c) => {
             const active = category === c.key;
@@ -152,7 +155,7 @@ export function CreateTaskClient({
                 }
               >
                 <span className="text-xl">{c.icon}</span>
-                {c.label}
+                {translateTaskCategory(c.key, locale)}
               </button>
             );
           })}
@@ -160,17 +163,17 @@ export function CreateTaskClient({
       </div>
 
       <div>
-        <Label>Повтор</Label>
+        <Label>{t("task.form.repeat")}</Label>
         <Select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
-          <option value="none">Без повтора</option>
-          <option value="daily">Каждый день</option>
-          <option value="weekly">Каждую неделю</option>
-          <option value="monthly">Каждый месяц</option>
+          <option value="none">{t("task.form.repeat.none")}</option>
+          <option value="daily">{t("task.form.repeat.daily")}</option>
+          <option value="weekly">{t("task.form.repeat.weekly")}</option>
+          <option value="monthly">{t("task.form.repeat.monthly")}</option>
         </Select>
       </div>
 
       <div>
-        <Label>Приоритет</Label>
+        <Label>{t("task.form.priority")}</Label>
         <div className="grid grid-cols-3 gap-2">
           {TASK_PRIORITIES.map((p) => {
             const active = priority === p.key;
@@ -186,7 +189,7 @@ export function CreateTaskClient({
                     : {}
                 }
               >
-                {p.label}
+                {translateTaskPriority(p.key, locale)}
               </button>
             );
           })}
@@ -194,7 +197,7 @@ export function CreateTaskClient({
       </div>
 
       <div>
-        <Label>Баллы за выполнение: {points}</Label>
+        <Label>{t("task.form.points")}: {points}</Label>
         <input
           type="range"
           min={5}
@@ -218,7 +221,7 @@ export function CreateTaskClient({
       )}
 
       <Button type="submit" disabled={busy} block size="lg">
-        {busy ? "Создание..." : "Создать задачу"}
+        {busy ? t("task.form.creating") : t("task.form.create")}
       </Button>
     </form>
   );

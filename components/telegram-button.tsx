@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePreferences } from "./preferences-provider";
 
 interface Props {
   memberKey?: string;
@@ -17,6 +18,7 @@ const TELEGRAM_ICON = (
 );
 
 export function TelegramButton({ memberKey, onSuccess }: Props) {
+  const { t } = usePreferences();
   const [state, setState] = useState<"idle" | "waiting" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [deeplink, setDeeplink] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
           } else if (pd.status === "expired") {
             if (pollerRef.current) clearInterval(pollerRef.current);
             setState("error");
-            setError("Срок действия ссылки истёк. Нажми ещё раз.");
+            setError(t("tg.expired"));
           }
         } catch {
           /* keep polling */
@@ -73,13 +75,13 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
   if (state === "waiting") {
     return (
       <div className="surface p-4 text-center">
-        <div className="text-sm font-medium mb-1">Открой Telegram и нажми «Start»</div>
+        <div className="text-sm font-medium mb-1">{t("tg.open_and_start")}</div>
         <div className="text-xs text-muted mb-3">
-          После подтверждения в боте эта страница автоматически залогинит тебя.
+          {t("tg.after_confirm")}
         </div>
         <div className="inline-flex items-center gap-2 text-[#2AABEE] text-sm">
           <span className="inline-block w-2 h-2 rounded-full bg-[#2AABEE] animate-pulse" />
-          Жду подтверждения…
+          {t("tg.waiting")}
         </div>
         {deeplink && (
           <div className="mt-3">
@@ -89,7 +91,7 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
               rel="noopener noreferrer"
               className="text-xs text-[#2AABEE] underline"
             >
-              Окно с ботом не открылось? Открой вручную
+              {t("tg.fallback")}
             </a>
           </div>
         )}
@@ -106,7 +108,7 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
         style={{ background: "#2AABEE" }}
       >
         {TELEGRAM_ICON}
-        Войти через Telegram
+        {t("tg.login")}
       </button>
       {error && (
         <div className="text-xs text-danger mt-2 text-center">{error}</div>
