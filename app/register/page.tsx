@@ -7,32 +7,43 @@ import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { MEMBER_LIST, MEMBERS, type MemberKey } from "@/lib/members";
-import { cn } from "@/lib/utils";
 import { TelegramButton } from "@/components/telegram-button";
 import { usePreferences } from "@/components/preferences-provider";
-import { translateRole } from "@/lib/i18n";
+
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 32) || "user"
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { t, locale } = usePreferences();
+  const { t } = usePreferences();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [memberKey, setMemberKey] = useState<MemberKey>("fedor");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!name.trim()) return;
     setLoading(true);
     setError(null);
     const sb = createClient();
-    const m = MEMBERS[memberKey];
+    const displayName = name.trim();
+    const memberKey = `${slugify(displayName)}-${Math.random().toString(36).slice(2, 8)}`;
 
     const { data, error: signUpErr } = await sb.auth.signUp({
       email,
       password,
-      options: { data: { member_key: memberKey, display_name: m.display_name } },
+      options: { data: { member_key: memberKey, display_name: displayName } },
     });
 
     if (signUpErr) {
@@ -43,17 +54,13 @@ export default function RegisterPage() {
 
     const userId = data.user?.id;
     if (userId) {
-      const { error: insertErr } = await sb.from("users").insert({
+      await sb.from("users").insert({
         id: userId,
         email,
         member_key: memberKey,
-        display_name: m.display_name,
-        age: m.age,
-        ui_profile: m.ui_profile,
+        display_name: displayName,
+        ui_profile: "default",
       });
-      if (insertErr) {
-        console.warn("profile insert failed:", insertErr.message);
-      }
     }
 
     setLoading(false);
@@ -74,41 +81,15 @@ export default function RegisterPage() {
         className="w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">{t("auth.who_are_you")}</h1>
-          <p className="text-sm text-muted mt-2">{t("auth.choose_avatar")}</p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {MEMBER_LIST.map((m) => {
-            const active = memberKey === m.key;
-            return (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => setMemberKey(m.key)}
-                className={cn(
-                  "flex flex-col items-center gap-2 py-4 rounded-2xl transition-colors",
-                  active ? "bg-surface ring-2" : "bg-surface/60",
-                )}
-                style={{ ...(active ? { boxShadow: `0 0 0 2px ${m.color}` } : {}) }}
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-3xl border"
-                  style={{ background: m.color + "33", borderColor: m.color, color: m.color }}
-                >
-                  {m.emoji}
-                </div>
-                <div className="text-[12px] font-medium" style={{ color: active ? m.color : "#FFF" }}>
-                  {m.display_name}
-                </div>
-                <div className="text-[10px] text-muted -mt-1">{translateRole(m.key, locale)}</div>
-              </button>
-            );
-          })}
+          <div className="inline-block w-20 h-20 rounded-3xl bg-accent/15 mb-5 flex items-center justify-center text-4xl">
+            🏠
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">XS.Family</h1>
+          <p className="text-sm text-muted mt-2">{t("auth.tagline")}</p>
         </div>
 
         <div className="mb-5">
-          <TelegramButton memberKey={memberKey} />
+          <TelegramButton />
         </div>
 
         <div className="flex items-center gap-3 my-6">
@@ -119,10 +100,21 @@ export default function RegisterPage() {
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
+            <Label>{t("auth.name")}</Label>
+            <Input
+              required
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("auth.name_placeholder")}
+            />
+          </div>
+          <div>
             <Label>Email</Label>
             <Input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@family.os"
@@ -134,6 +126,7 @@ export default function RegisterPage() {
               type="password"
               required
               minLength={6}
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t("auth.password_placeholder")}

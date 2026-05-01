@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { usePreferences } from "./preferences-provider";
 
 interface Props {
-  memberKey?: string;
   onSuccess?: (redirectUrl: string) => void;
 }
 
@@ -17,7 +16,7 @@ const TELEGRAM_ICON = (
   </svg>
 );
 
-export function TelegramButton({ memberKey, onSuccess }: Props) {
+export function TelegramButton({ onSuccess }: Props) {
   const { t } = usePreferences();
   const [state, setState] = useState<"idle" | "waiting" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +33,7 @@ export function TelegramButton({ memberKey, onSuccess }: Props) {
     setState("waiting");
     setError(null);
     try {
-      const r = await fetch("/api/auth/tg-start", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ member_key: memberKey ?? null }),
-      });
+      const r = await fetch("/api/auth/tg-start", { method: "POST" });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "tg-start failed");
 

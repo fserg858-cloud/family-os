@@ -4,11 +4,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-// POST /api/auth/tg-start { member_key?: string }
+// POST /api/auth/tg-start
 // Создаёт короткоживущий login-token (15 мин) и возвращает deeplink на бот.
 // Хранит в family_events (kind='tg_login') — без отдельной миграции.
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const botName =
     process.env.TELEGRAM_BOT_NAME?.trim() ||
@@ -20,9 +20,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "TELEGRAM_BOT_NAME not set" }, { status: 500 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const memberKey = typeof body.member_key === "string" ? body.member_key : null;
-
   const token = randomBytes(12).toString("hex");
   const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
@@ -31,7 +28,6 @@ export async function POST(req: NextRequest) {
     kind: "tg_login",
     payload: {
       token,
-      member_key: memberKey,
       expires_at,
       tg_user_id: null,
       tg_first_name: null,
