@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
-import { getServerLocale, getServerTheme } from "@/lib/preferences";
+import { getServerLocale, getServerTheme, getServerAccent } from "@/lib/preferences";
 import { PreferencesProvider } from "@/components/preferences-provider";
 import { t } from "@/lib/i18n";
 
@@ -37,11 +37,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const ui = user?.ui_profile ?? "default";
   const theme = getServerTheme();
   const locale = getServerLocale();
+  const accent = getServerAccent();
 
   return (
-    <html lang={locale} data-theme={theme} className={mono.variable}>
+    <html lang={locale} data-theme={theme} data-accent={accent} className={mono.variable}>
       <body data-ui={ui}>
-        <PreferencesProvider initialTheme={theme} initialLocale={locale}>
+        <PreferencesProvider initialTheme={theme} initialLocale={locale} initialAccent={accent}>
           {children}
         </PreferencesProvider>
       </body>

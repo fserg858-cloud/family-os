@@ -11,7 +11,7 @@ import { TaskCardServer } from "../dashboard/task-card-server";
 import { getMember } from "@/lib/members";
 import { xpProgress, streakCopy } from "@/lib/xp";
 import { todayISO } from "@/lib/utils";
-import { ThemeToggle, LocaleSwitch } from "@/components/settings-controls";
+import { ThemeToggle, LocaleSwitch, AccentSwitch } from "@/components/settings-controls";
 import { getServerLocale } from "@/lib/preferences";
 import { t, type TKey, translateRole } from "@/lib/i18n";
 
@@ -88,6 +88,7 @@ export default async function ProfilePage() {
       <div className="space-y-2">
         <ThemeToggle />
         <LocaleSwitch />
+        <AccentSwitch />
       </div>
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-8 mb-3">
