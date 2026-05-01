@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMessage, sendChatAction } from "@/lib/telegram-bot";
-import { findAuthUserByTgId, answerAsAssistant } from "@/lib/agent/personal";
+import {
+  findAuthUserByTgId,
+  answerAsAssistant,
+  answerWithImage,
+} from "@/lib/agent/personal";
 import { notifyFamily } from "@/lib/agent/notify";
 import { XP_REWARDS, levelFromXp } from "@/lib/xp";
+import { downloadTelegramFile, uploadToFamilyBucket } from "@/lib/telegram-media";
+import { transcribeAudio } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,8 +26,10 @@ const HELP = `XS.Family — что умеет бот:
 /calendar — ближайшие семейные события
 /help — это сообщение
 
-Любое другое сообщение — обращение к семейному AI-ассистенту 🤖
-Я знаю твой контекст: цели, привычки, здоровье, настроение.`;
+📸 Пришли фото — AI опишет что видит и даст комментарий с учётом твоих целей.
+🎙️ Запиши голосовое — расшифрую и отвечу как на обычное сообщение.
+Любой текст — обращение к семейному AI-ассистенту 🤖
+Я помню твой контекст: цели, привычки, здоровье, настроение, прошлые фото и записи.`;
 
 export async function POST(req: NextRequest) {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
@@ -43,20 +51,46 @@ export async function POST(req: NextRequest) {
   }
 
   const msg = update?.message;
-  const text: string | undefined = msg?.text;
   const from = msg?.from;
   const chatId = msg?.chat?.id;
-  if (!from || !text || !chatId) return NextResponse.json({ ok: true });
+  if (!from || !chatId) return NextResponse.json({ ok: true });
+
+  const text: string | undefined = msg?.text;
+  const caption: string = typeof msg?.caption === "string" ? msg.caption : "";
+  const photo: any[] | undefined = Array.isArray(msg?.photo) ? msg.photo : undefined;
+  const voice: any = msg?.voice;
+  const audio: any = msg?.audio;
 
   // 1) Login deeplink: /start <token>
-  const loginMatch = text.match(/^\/start\s+([a-z0-9]+)\s*$/i);
-  if (loginMatch) {
-    return await handleLogin(botToken, chatId, msg, from, loginMatch[1]);
+  if (text) {
+    const loginMatch = text.match(/^\/start\s+([a-z0-9]+)\s*$/i);
+    if (loginMatch) {
+      return await handleLogin(botToken, chatId, msg, from, loginMatch[1]);
+    }
   }
 
   // Авторизация по tg_user_id
   const authUser = await findAuthUserByTgId(from.id);
   const userId: string | null = authUser?.id ?? null;
+
+  // Фото / голос / аудио — требуют авторизации сразу
+  if (!text && (photo || voice || audio)) {
+    if (!userId) {
+      await sendMessage(
+        botToken,
+        chatId,
+        "Сначала залогинься: открой https://family-os-silk.vercel.app/login и нажми «Войти через Telegram».",
+      );
+      return NextResponse.json({ ok: true });
+    }
+    if (photo) {
+      return await handlePhoto(botToken, chatId, userId, photo, caption);
+    }
+    if (voice || audio) {
+      return await handleVoice(botToken, chatId, userId, voice ?? audio);
+    }
+  }
+  if (!text) return NextResponse.json({ ok: true });
 
   // 2) /start (без токена)
   if (text.trim() === "/start") {
@@ -401,6 +435,103 @@ async function handleXp(botToken: string, chatId: number, userId: string) {
     (habits ?? []).forEach((h: any) => lines.push(`  • ${h.title} — стрик ${h.streak}`));
   }
   await sendMessage(botToken, chatId, lines.join("\n"));
+  return NextResponse.json({ ok: true });
+}
+
+async function handlePhoto(
+  botToken: string,
+  chatId: number,
+  userId: string,
+  photoSizes: any[],
+  caption: string,
+) {
+  // Берём самый большой размер из массива (Telegram отдаёт от мелкого к крупному)
+  const largest = photoSizes[photoSizes.length - 1];
+  if (!largest?.file_id) return NextResponse.json({ ok: true });
+
+  await sendChatAction(botToken, chatId, "typing");
+  const file = await downloadTelegramFile(botToken, largest.file_id);
+  if (!file) {
+    await sendMessage(botToken, chatId, "Не получилось скачать фото. Попробуй ещё раз.");
+    return NextResponse.json({ ok: true });
+  }
+  const url = await uploadToFamilyBucket(userId, file.buffer, file.mime, file.ext, "tg-photo");
+  if (!url) {
+    await sendMessage(botToken, chatId, "Не удалось сохранить фото в хранилище. Попробуй ещё раз.");
+    return NextResponse.json({ ok: true });
+  }
+
+  try {
+    const reply = await answerWithImage(userId, url, caption);
+    await sendMessage(botToken, chatId, reply);
+  } catch (e: any) {
+    await sendMessage(
+      botToken,
+      chatId,
+      `Не получилось обработать фото: ${e?.message ?? "ошибка"}.`,
+    );
+  }
+  return NextResponse.json({ ok: true });
+}
+
+async function handleVoice(
+  botToken: string,
+  chatId: number,
+  userId: string,
+  media: any,
+) {
+  if (!media?.file_id) return NextResponse.json({ ok: true });
+
+  await sendChatAction(botToken, chatId, "typing");
+  const file = await downloadTelegramFile(botToken, media.file_id);
+  if (!file) {
+    await sendMessage(botToken, chatId, "Не удалось скачать голосовое. Попробуй ещё раз.");
+    return NextResponse.json({ ok: true });
+  }
+  const url = await uploadToFamilyBucket(userId, file.buffer, file.mime, file.ext, "tg-voice");
+  const transcription = await transcribeAudio(file.buffer, file.mime, file.ext, "ru");
+  if (!transcription) {
+    const sb = createAdminClient();
+    if (url) {
+      await sb.from("ai_memory").insert({
+        user_id: userId,
+        memory_type: "tg_voice",
+        content: "[голос] (не удалось распознать — нет OPENAI_API_KEY)",
+        key: `tg_voice_${Date.now()}`,
+        value: url,
+        importance: 2,
+      });
+    }
+    await sendMessage(
+      botToken,
+      chatId,
+      "Голосовое получено, но распознавание сейчас недоступно. Напиши то же самое текстом — я обработаю.",
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  // Сохраняем расшифровку как отдельную memory-запись со ссылкой на оригинал
+  const sb = createAdminClient();
+  await sb.from("ai_memory").insert({
+    user_id: userId,
+    memory_type: "tg_voice",
+    content: `[голос] «${transcription.slice(0, 400)}»`,
+    key: `tg_voice_${Date.now()}`,
+    value: url ?? "",
+    importance: 4,
+  });
+
+  try {
+    const prompt = `🎙️ Расшифровка голосового: «${transcription}»\n\nОтветь по существу с учётом контекста.`;
+    const reply = await answerAsAssistant(userId, prompt);
+    await sendMessage(botToken, chatId, reply);
+  } catch (e: any) {
+    await sendMessage(
+      botToken,
+      chatId,
+      `Расшифровал, но ответить не получилось: ${e?.message ?? "ошибка"}. Текст: «${transcription}»`,
+    );
+  }
   return NextResponse.json({ ok: true });
 }
 
