@@ -6,6 +6,8 @@ import { Input, Label } from "@/components/ui/input";
 import { Plus, Droplet } from "lucide-react";
 import { todayISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/components/preferences-provider";
+import type { TKey } from "@/lib/i18n";
 
 type Kind = "nutrition" | "sleep" | "workout" | "metric" | "water";
 
@@ -17,15 +19,16 @@ interface Log {
   created_at: string;
 }
 
-const TABS: { key: Kind; label: string; icon: string }[] = [
-  { key: "nutrition", label: "Питание", icon: "🍽️" },
-  { key: "sleep", label: "Сон", icon: "🌙" },
-  { key: "workout", label: "Тренировки", icon: "🏋️" },
-  { key: "metric", label: "Метрики", icon: "📊" },
-  { key: "water", label: "Вода", icon: "💧" },
+const TABS: { key: Kind; labelKey: TKey; icon: string }[] = [
+  { key: "nutrition", labelKey: "health.tab.nutrition", icon: "🍽️" },
+  { key: "sleep", labelKey: "health.tab.sleep", icon: "🌙" },
+  { key: "workout", labelKey: "health.tab.workout", icon: "🏋️" },
+  { key: "metric", labelKey: "health.tab.metric", icon: "📊" },
+  { key: "water", labelKey: "health.tab.water", icon: "💧" },
 ];
 
 export function HealthClient({ initial }: { initial: Log[] }) {
+  const { t } = usePreferences();
   const [tab, setTab] = useState<Kind>("nutrition");
   const [logs, setLogs] = useState<Log[]>(initial);
 
@@ -46,17 +49,17 @@ export function HealthClient({ initial }: { initial: Log[] }) {
   return (
     <div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 mb-4">
-        {TABS.map((t) => (
+        {TABS.map((tabDef) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabDef.key}
+            onClick={() => setTab(tabDef.key)}
             className={cn(
               "shrink-0 px-3 py-2 rounded-xl text-sm flex items-center gap-2",
-              tab === t.key ? "bg-accent text-white" : "bg-surface",
+              tab === tabDef.key ? "bg-accent text-white" : "bg-surface",
             )}
           >
-            <span>{t.icon}</span>
-            {t.label}
+            <span>{tabDef.icon}</span>
+            {t(tabDef.labelKey)}
           </button>
         ))}
       </div>
@@ -68,10 +71,10 @@ export function HealthClient({ initial }: { initial: Log[] }) {
       {tab === "water" && <WaterForm onAdd={addLog} todayLogs={filtered} />}
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6 mb-3">
-        История
+        {t("health.history")}
       </h3>
       <div className="space-y-2">
-        {filtered.length === 0 && <div className="surface p-4 text-center text-sm text-muted">Пусто</div>}
+        {filtered.length === 0 && <div className="surface p-4 text-center text-sm text-muted">{t("health.empty")}</div>}
         {filtered.map((l) => (
           <div key={l.id} className="surface p-3">
             <div className="text-[10px] text-muted">{l.occurred_on}</div>
@@ -86,6 +89,7 @@ export function HealthClient({ initial }: { initial: Log[] }) {
 }
 
 function NutritionForm({ onAdd }: { onAdd: (p: any) => void }) {
+  const { t } = usePreferences();
   const [meal, setMeal] = useState("");
   const [kcal, setKcal] = useState("");
   const [protein, setProtein] = useState("");
@@ -112,35 +116,36 @@ function NutritionForm({ onAdd }: { onAdd: (p: any) => void }) {
       }}
     >
       <div>
-        <Label>Что съел/выпил</Label>
-        <Input value={meal} onChange={(e) => setMeal(e.target.value)} placeholder="Овсянка с орехами" />
+        <Label>{t("health.nutrition.what")}</Label>
+        <Input value={meal} onChange={(e) => setMeal(e.target.value)} placeholder={t("health.nutrition.placeholder")} />
       </div>
       <div className="grid grid-cols-4 gap-2">
         <div>
-          <Label>Ккал</Label>
+          <Label>{t("health.nutrition.kcal")}</Label>
           <Input type="number" value={kcal} onChange={(e) => setKcal(e.target.value)} />
         </div>
         <div>
-          <Label>Б</Label>
+          <Label>{t("health.nutrition.protein")}</Label>
           <Input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} />
         </div>
         <div>
-          <Label>Ж</Label>
+          <Label>{t("health.nutrition.fat")}</Label>
           <Input type="number" value={fat} onChange={(e) => setFat(e.target.value)} />
         </div>
         <div>
-          <Label>У</Label>
+          <Label>{t("health.nutrition.carbs")}</Label>
           <Input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
         </div>
       </div>
       <Button type="submit" block>
-        <Plus size={14} /> Записать
+        <Plus size={14} /> {t("health.log")}
       </Button>
     </form>
   );
 }
 
 function SleepForm({ onAdd }: { onAdd: (p: any) => void }) {
+  const { t } = usePreferences();
   const [hours, setHours] = useState("");
   const [quality, setQuality] = useState("4");
   return (
@@ -155,22 +160,23 @@ function SleepForm({ onAdd }: { onAdd: (p: any) => void }) {
     >
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label>Часов</Label>
+          <Label>{t("health.sleep.hours")}</Label>
           <Input type="number" step="0.1" value={hours} onChange={(e) => setHours(e.target.value)} />
         </div>
         <div>
-          <Label>Качество (1–5)</Label>
+          <Label>{t("health.sleep.quality")}</Label>
           <Input type="number" min={1} max={5} value={quality} onChange={(e) => setQuality(e.target.value)} />
         </div>
       </div>
       <Button type="submit" block>
-        <Plus size={14} /> Записать
+        <Plus size={14} /> {t("health.log")}
       </Button>
     </form>
   );
 }
 
 function WorkoutForm({ onAdd }: { onAdd: (p: any) => void }) {
+  const { t } = usePreferences();
   const [type, setType] = useState("");
   const [minutes, setMinutes] = useState("");
   const [intensity, setIntensity] = useState("3");
@@ -186,27 +192,28 @@ function WorkoutForm({ onAdd }: { onAdd: (p: any) => void }) {
       }}
     >
       <div>
-        <Label>Тип</Label>
-        <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="Силовая / бег / йога" />
+        <Label>{t("health.workout.type")}</Label>
+        <Input value={type} onChange={(e) => setType(e.target.value)} placeholder={t("health.workout.placeholder")} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label>Минут</Label>
+          <Label>{t("health.workout.minutes")}</Label>
           <Input type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
         </div>
         <div>
-          <Label>Интенс. (1–5)</Label>
+          <Label>{t("health.workout.intensity")}</Label>
           <Input type="number" min={1} max={5} value={intensity} onChange={(e) => setIntensity(e.target.value)} />
         </div>
       </div>
       <Button type="submit" block>
-        <Plus size={14} /> Записать
+        <Plus size={14} /> {t("health.log")}
       </Button>
     </form>
   );
 }
 
 function MetricForm({ onAdd }: { onAdd: (p: any) => void }) {
+  const { t } = usePreferences();
   const [weight, setWeight] = useState("");
   const [bp, setBp] = useState("");
   const [hr, setHr] = useState("");
@@ -228,20 +235,20 @@ function MetricForm({ onAdd }: { onAdd: (p: any) => void }) {
     >
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <Label>Вес</Label>
+          <Label>{t("health.metric.weight")}</Label>
           <Input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} />
         </div>
         <div>
-          <Label>Давление</Label>
-          <Input value={bp} onChange={(e) => setBp(e.target.value)} placeholder="120/80" />
+          <Label>{t("health.metric.bp")}</Label>
+          <Input value={bp} onChange={(e) => setBp(e.target.value)} placeholder={t("health.metric.bp_placeholder")} />
         </div>
         <div>
-          <Label>Пульс</Label>
+          <Label>{t("health.metric.pulse")}</Label>
           <Input type="number" value={hr} onChange={(e) => setHr(e.target.value)} />
         </div>
       </div>
       <Button type="submit" block>
-        <Plus size={14} /> Записать
+        <Plus size={14} /> {t("health.log")}
       </Button>
     </form>
   );
@@ -254,6 +261,7 @@ function WaterForm({
   onAdd: (p: any) => void;
   todayLogs: Log[];
 }) {
+  const { t } = usePreferences();
   const totalMl = todayLogs
     .filter((l) => l.occurred_on === todayISO())
     .reduce((acc, l) => acc + (Number(l.payload?.ml) || 0), 0);
@@ -265,7 +273,7 @@ function WaterForm({
         <Droplet size={28} className="text-accent" />
         <div className="flex-1">
           <div className="text-2xl font-semibold">
-            {totalMl} <span className="text-muted text-sm">/ {target} мл</span>
+            {totalMl} <span className="text-muted text-sm">/ {target} {t("health.water.target_suffix")}</span>
           </div>
           <div className="h-2 rounded-full bg-surface2 overflow-hidden mt-2">
             <div className="h-full bg-accent" style={{ width: `${pct}%` }} />

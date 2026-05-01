@@ -2,6 +2,8 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { TasksClient } from "./tasks-client";
+import { getServerLocale } from "@/lib/preferences";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +14,13 @@ export default async function TasksPage() {
     supabase.from("family_tasks").select("*").order("created_at", { ascending: false }),
     supabase.from("users").select("id, display_name, member_key"),
   ]);
+  const locale = getServerLocale();
 
   return (
     <AppShell user={user}>
       <header className="pt-2 pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Задачи</h1>
-        <p className="text-xs text-muted mt-1">Свайп вправо — выполнить, влево — удалить</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("tasks.title", locale)}</h1>
+        <p className="text-xs text-muted mt-1">{t("tasks.subtitle", locale)}</p>
       </header>
       <TasksClient initial={tasks ?? []} members={members ?? []} currentUserId={user.id} />
     </AppShell>

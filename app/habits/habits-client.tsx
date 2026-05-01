@@ -7,6 +7,7 @@ import { Plus, Flame, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/components/preferences-provider";
 
 interface Habit {
   id: string;
@@ -26,6 +27,7 @@ export function HabitsClient({
   doneToday: string[];
 }) {
   const router = useRouter();
+  const { t } = usePreferences();
   const [habits, setHabits] = useState<Habit[]>(initial);
   const [done, setDone] = useState<Set<string>>(new Set(doneToday));
   const [adding, setAdding] = useState(false);
@@ -68,7 +70,7 @@ export function HabitsClient({
     <div>
       <div className="flex justify-end mb-3">
         <Button onClick={() => setAdding((v) => !v)} variant={adding ? "ghost" : "primary"} size="sm">
-          <Plus size={14} /> {adding ? "Отмена" : "Новая"}
+          <Plus size={14} /> {adding ? t("common.cancel") : t("habits.new")}
         </Button>
       </div>
 
@@ -82,24 +84,24 @@ export function HabitsClient({
             className="surface p-4 mb-4 space-y-3 overflow-hidden"
           >
             <div>
-              <Label>Привычка</Label>
+              <Label>{t("habits.form.name")}</Label>
               <Input
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="30 мин чтения"
+                placeholder={t("habits.form.name_placeholder")}
               />
             </div>
             <div>
-              <Label>Зачем</Label>
+              <Label>{t("habits.form.why")}</Label>
               <Textarea
                 value={form.why}
                 onChange={(e) => setForm({ ...form, why: e.target.value })}
-                placeholder="Снижает кортизол, готовит ко сну"
+                placeholder={t("habits.form.why_placeholder")}
               />
             </div>
             <Button type="submit" block>
-              Сохранить
+              {t("common.save")}
             </Button>
           </motion.form>
         )}
@@ -108,7 +110,7 @@ export function HabitsClient({
       <div className="space-y-2">
         {habits.length === 0 && (
           <div className="surface p-6 text-center text-muted text-sm">
-            Пусто. Добавь первую привычку.
+            {t("habits.empty")}
           </div>
         )}
         {habits.map((h, i) => {
@@ -134,12 +136,12 @@ export function HabitsClient({
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-semibold text-accent">{h.streak}</div>
-                  <div className="text-[10px] text-muted uppercase tracking-widest">стрик</div>
+                  <div className="text-[10px] text-muted uppercase tracking-widest">{t("habits.streak")}</div>
                 </div>
                 <button
                   onClick={() => remove(h.id)}
                   className="text-muted hover:text-danger p-1"
-                  aria-label="Удалить"
+                  aria-label={t("common.delete")}
                 >
                   <Trash2 size={14} />
                 </button>

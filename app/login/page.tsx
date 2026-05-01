@@ -8,9 +8,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { TelegramButton } from "@/components/telegram-button";
+import { usePreferences } from "@/components/preferences-provider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = usePreferences();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export default function LoginPage() {
             🏠
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">XS.Family</h1>
-          <p className="text-sm text-muted mt-2">Семейный хаб для всех</p>
+          <p className="text-sm text-muted mt-2">{t("auth.tagline")}</p>
         </div>
 
         <div className="mb-5">
@@ -53,7 +55,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted uppercase tracking-widest">или</span>
+          <span className="text-xs text-muted uppercase tracking-widest">{t("common.or")}</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
@@ -70,7 +72,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <Label>Пароль</Label>
+            <Label>{t("common.password")}</Label>
             <Input
               type="password"
               required
@@ -87,14 +89,14 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" disabled={loading} block size="lg">
-            {loading ? "Вход..." : "Войти"}
+            {loading ? t("auth.logging_in") : t("auth.login")}
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-muted">
-          Нет аккаунта?{" "}
+          {t("auth.no_account")}{" "}
           <Link href="/register" className="text-accent">
-            Зарегистрироваться
+            {t("auth.register")}
           </Link>
         </div>
       </motion.div>

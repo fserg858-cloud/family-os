@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Sparkles, ShoppingCart, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { usePreferences } from "@/components/preferences-provider";
+import { translateShoppingCategory } from "@/lib/i18n";
 
 interface DayMenu {
   day: string;
@@ -23,17 +25,18 @@ interface Menu {
   motivation?: string;
 }
 
-const CAT_LABEL: Record<string, string> = {
-  produce: "🥬 Овощи и фрукты",
-  dairy: "🥛 Молочное",
-  meat: "🥩 Мясо и рыба",
-  grain: "🌾 Бакалея",
-  bakery: "🥐 Хлеб",
-  household: "🧴 Бытовое",
-  other: "🛒 Другое",
+const CAT_ICON: Record<string, string> = {
+  produce: "🥬",
+  dairy: "🥛",
+  meat: "🥩",
+  grain: "🌾",
+  bakery: "🥐",
+  household: "🧴",
+  other: "🛒",
 };
 
 export function MenuClient() {
+  const { t, locale } = usePreferences();
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,7 +55,7 @@ export function MenuClient() {
         body: JSON.stringify({ preferences, allergies }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error ?? "ошибка");
+      if (!r.ok) throw new Error(data.error ?? t("calendar.error_generic"));
       setMenu(data);
     } catch (e: any) {
       setError(e.message);
@@ -91,24 +94,24 @@ export function MenuClient() {
     return (
       <div className="space-y-4">
         <div className="surface p-4">
-          <Label>Предпочтения и стиль</Label>
+          <Label>{t("menu.preferences")}</Label>
           <Textarea
             value={preferences}
             onChange={(e) => setPreferences(e.target.value)}
-            placeholder="Например: средиземноморский стиль, больше рыбы, минимум сахара, готовлю на 30 мин"
+            placeholder={t("menu.preferences_placeholder")}
           />
         </div>
         <div className="surface p-4">
-          <Label>Аллергии / непереносимости</Label>
+          <Label>{t("menu.allergies")}</Label>
           <Input
             value={allergies}
             onChange={(e) => setAllergies(e.target.value)}
-            placeholder="Например: лактоза у Игната, орехи"
+            placeholder={t("menu.allergies_placeholder")}
           />
         </div>
         <Button onClick={generate} disabled={busy} block size="lg">
           <Sparkles size={18} />
-          {busy ? "Думаю над меню..." : "Сгенерировать меню недели"}
+          {busy ? t("menu.generating") : t("menu.generate")}
         </Button>
         {error && (
           <div className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-xl px-3 py-2">
@@ -127,12 +130,12 @@ export function MenuClient() {
           animate={{ opacity: 1, y: 0 }}
           className="surface p-4 border-l-4 border-accent"
         >
-          <div className="text-xs text-muted uppercase tracking-widest mb-1">от AI-нутрициолога</div>
+          <div className="text-xs text-muted uppercase tracking-widest mb-1">{t("menu.from_ai")}</div>
           <div className="text-sm">{menu.motivation}</div>
         </motion.div>
       )}
 
-      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium">7 дней</h3>
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium">{t("menu.7_days")}</h3>
       <div className="space-y-2">
         {menu.days.map((d, i) => (
           <motion.div
@@ -176,11 +179,11 @@ export function MenuClient() {
         ))}
       </div>
 
-      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6">Список покупок</h3>
+      <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6">{t("menu.shopping_list")}</h3>
       <div className="space-y-3">
         {menu.shopping.map((g) => (
           <div key={g.category} className="surface p-4">
-            <div className="font-semibold mb-2">{CAT_LABEL[g.category] ?? g.category}</div>
+            <div className="font-semibold mb-2">{CAT_ICON[g.category] ?? "🛒"} {translateShoppingCategory(g.category, locale) || g.category}</div>
             <ul className="text-sm space-y-1">
               {g.items.map((it, i) => (
                 <li key={i} className="flex justify-between">
@@ -195,11 +198,11 @@ export function MenuClient() {
 
       <Button onClick={addAllToShoppingList} disabled={adding} block size="lg">
         <ShoppingCart size={18} />
-        {adding ? "Добавляю…" : addedCount > 0 ? `Добавлено ${addedCount} позиций ✓` : "Добавить всё в список покупок"}
+        {adding ? t("menu.adding") : addedCount > 0 ? `${t("menu.added")} ${addedCount} ${t("menu.added_items_suffix")}` : t("menu.add_all")}
       </Button>
 
       <Button onClick={() => setMenu(null)} variant="ghost" block>
-        Сгенерировать заново
+        {t("menu.regenerate")}
       </Button>
     </div>
   );

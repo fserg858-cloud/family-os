@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "@/components/preferences-provider";
 
 interface Member {
   id: string;
@@ -24,6 +25,7 @@ export function TasksClient({
   currentUserId: string;
 }) {
   const router = useRouter();
+  const { t } = usePreferences();
   const [tasks, setTasks] = useState<any[]>(initial);
   const [filter, setFilter] = useState<Filter>("active");
   const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
@@ -50,9 +52,9 @@ export function TasksClient({
   }
 
   const FILTERS: { key: Filter; label: string }[] = [
-    { key: "all", label: "Все" },
-    { key: "active", label: "Активные" },
-    { key: "done", label: "Готово" },
+    { key: "all", label: t("tasks.filter.all") },
+    { key: "active", label: t("tasks.filter.active") },
+    { key: "done", label: t("tasks.filter.done") },
   ];
 
   return (
@@ -76,7 +78,7 @@ export function TasksClient({
         <div className="space-y-2">
           {filtered.length === 0 && (
             <div className="surface p-6 text-center text-muted text-sm">
-              Здесь пусто. Жми + внизу, чтобы добавить.
+              {t("tasks.empty")}
             </div>
           )}
           {filtered.map((t, i) => {

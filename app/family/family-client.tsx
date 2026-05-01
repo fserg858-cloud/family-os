@@ -8,6 +8,8 @@ import { TaskCard, type TaskCardData } from "@/components/task-card";
 import { Progress } from "@/components/ui/progress";
 import { getMember } from "@/lib/members";
 import { xpProgress } from "@/lib/xp";
+import { usePreferences } from "@/components/preferences-provider";
+import { translateRole } from "@/lib/i18n";
 
 interface Member {
   id: string;
@@ -29,6 +31,7 @@ export function FamilyClient({
   initialFilter: string | null;
 }) {
   const router = useRouter();
+  const { t, locale } = usePreferences();
   const [tasks, setTasks] = useState<any[]>(initial);
   const [selected, setSelected] = useState<string | null>(initialFilter ?? null);
 
@@ -69,7 +72,7 @@ export function FamilyClient({
               <div className="text-lg font-semibold" style={{ color: focusDef.color }}>
                 {focused.display_name}
               </div>
-              <div className="text-xs text-muted">{focusDef.role}</div>
+              <div className="text-xs text-muted">{translateRole(focused.member_key, locale)}</div>
             </div>
             <div className="text-right">
               <div className="text-2xl font-semibold">L{focused.level}</div>
@@ -81,13 +84,13 @@ export function FamilyClient({
       )}
 
       <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mt-6 mb-3">
-        Задачи {focused ? `· ${focused.display_name}` : "семьи"}
+        {focused ? `${t("family.tasks")} · ${focused.display_name}` : t("family.tasks_of")}
       </h3>
 
       <AnimatePresence mode="popLayout">
         <div className="space-y-2">
           {filtered.length === 0 && (
-            <div className="surface p-4 text-center text-sm text-muted">Нет задач</div>
+            <div className="surface p-4 text-center text-sm text-muted">{t("family.no_tasks")}</div>
           )}
           {filtered.map((t, i) => {
             const ass = t.assigned_to ? memberMap.get(t.assigned_to) : null;

@@ -1,15 +1,20 @@
+import { getServerLocale } from "@/lib/preferences";
+import { t, type TKey } from "@/lib/i18n";
+
 export const dynamic = "force-dynamic";
 
-const REQUIRED = [
-  { name: "NEXT_PUBLIC_SUPABASE_URL", desc: "URL Supabase-проекта" },
-  { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", desc: "Публичный anon-ключ" },
-  { name: "SUPABASE_SERVICE_ROLE_KEY", desc: "Service role (только сервер)" },
-  { name: "ANTHROPIC_API_KEY", desc: "Ключ Claude API" },
-  { name: "NEXT_PUBLIC_APP_URL", desc: "Публичный URL приложения" },
-  { name: "CRON_SECRET", desc: "Случайная строка для cron" },
+const REQUIRED: { name: string; key: TKey }[] = [
+  { name: "NEXT_PUBLIC_SUPABASE_URL", key: "setup.env_url" },
+  { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", key: "setup.env_anon" },
+  { name: "SUPABASE_SERVICE_ROLE_KEY", key: "setup.env_service" },
+  { name: "ANTHROPIC_API_KEY", key: "setup.env_claude" },
+  { name: "NEXT_PUBLIC_APP_URL", key: "setup.env_app_url" },
+  { name: "CRON_SECRET", key: "setup.env_cron" },
 ];
 
 export default function SetupPage() {
+  const locale = getServerLocale();
+  const tr = (k: TKey) => t(k, locale);
   const missing = REQUIRED.filter((v) => !process.env[v.name]);
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-5 py-10">
@@ -19,11 +24,11 @@ export default function SetupPage() {
             🔧
           </div>
           <h1 className="text-xl font-semibold">Setup XS.Family</h1>
-          <p className="text-xs text-muted mt-1">Не выставлены переменные окружения</p>
+          <p className="text-xs text-muted mt-1">{tr("setup.title")}</p>
         </div>
 
         <p className="text-sm text-muted mb-5 leading-relaxed">
-          Добавь ключи в Vercel → Project → Settings → Environment Variables, затем нажми Redeploy.
+          {tr("setup.instructions")}
         </p>
 
         <div className="space-y-2 mb-4">
@@ -38,10 +43,10 @@ export default function SetupPage() {
               >
                 <div>
                   <div className="text-sm font-mono">{v.name}</div>
-                  <div className="text-[11px] text-muted">{v.desc}</div>
+                  <div className="text-[11px] text-muted">{tr(v.key)}</div>
                 </div>
                 <div className={`text-[11px] ${isMissing ? "text-danger" : "text-success"}`}>
-                  {isMissing ? "нет" : "ok"}
+                  {isMissing ? tr("setup.missing") : tr("setup.ok")}
                 </div>
               </div>
             );
@@ -49,7 +54,7 @@ export default function SetupPage() {
         </div>
 
         <div className="text-[11px] text-muted leading-relaxed">
-          После добавления — Vercel → Deployments → ⋯ → Redeploy. Эта страница исчезнет.
+          {tr("setup.final")}
         </div>
       </div>
     </div>

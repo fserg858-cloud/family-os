@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePreferences } from "@/components/preferences-provider";
 
 interface Report {
   summary: string;
@@ -16,6 +17,7 @@ export function ReportClient({
   weekStart: string;
   initial: Report | null;
 }) {
+  const { t } = usePreferences();
   const [report, setReport] = useState<Report | null>(initial);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function ReportClient({
     const data = await res.json();
     setBusy(false);
     if (!res.ok) {
-      setErr(data.error ?? "Ошибка");
+      setErr(data.error ?? t("common.error"));
       return;
     }
     setReport({ summary: data.summary, highlights: data.highlights ?? [] });
@@ -40,9 +42,9 @@ export function ReportClient({
   return (
     <div className="surface p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] uppercase tracking-widest text-muted">AI-обзор</span>
+        <span className="text-[11px] uppercase tracking-widest text-muted">{t("report.ai_overview")}</span>
         <Button onClick={generate} disabled={busy} size="sm">
-          <Sparkles size={14} /> {report ? "Обновить" : "Сгенерировать"}
+          <Sparkles size={14} /> {report ? t("report.refresh") : t("report.generate")}
         </Button>
       </div>
 
@@ -54,11 +56,11 @@ export function ReportClient({
 
       {!report && !busy && (
         <div className="text-sm text-muted">
-          Нажми «Сгенерировать» — Claude соберёт обзор по событиям недели.
+          {t("report.help")}
         </div>
       )}
 
-      {busy && <div className="text-muted">Думаю...</div>}
+      {busy && <div className="text-muted">{t("common.thinking")}</div>}
 
       {report && (
         <div className="text-[14px] whitespace-pre-wrap leading-relaxed">{report.summary}</div>

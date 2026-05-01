@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { MemoryClient } from "./memory-client";
 import type { AgentDecision, AgentPattern } from "@/lib/agent/types";
+import { getServerLocale } from "@/lib/preferences";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +17,12 @@ export default async function MemoryPage() {
     sb.from("ai_memory").select("id, memory_type, content, value, key, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
   ]);
 
+  const locale = getServerLocale();
   return (
     <AppShell user={user}>
       <header className="pt-2 pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Память</h1>
-        <p className="text-xs text-muted mt-1">Что агент знает о тебе</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("memory.title", locale)}</h1>
+        <p className="text-xs text-muted mt-1">{t("memory.subtitle", locale)}</p>
       </header>
       <MemoryClient
         initialPatterns={(patterns ?? []) as AgentPattern[]}

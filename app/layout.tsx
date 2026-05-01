@@ -4,6 +4,7 @@ import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
 import { getServerLocale, getServerTheme } from "@/lib/preferences";
 import { PreferencesProvider } from "@/components/preferences-provider";
+import { t } from "@/lib/i18n";
 
 const mono = IBM_Plex_Mono({
   weight: ["400", "500"],
@@ -12,11 +13,14 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "XS.Family",
-  description: "Семейный хаб: задачи, события, привычки и AI-ассистент",
-  manifest: undefined,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = getServerLocale();
+  return {
+    title: "XS.Family",
+    description: t("meta.description", locale),
+    manifest: undefined,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#1C1C1E",

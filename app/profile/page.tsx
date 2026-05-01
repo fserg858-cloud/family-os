@@ -13,7 +13,7 @@ import { xpProgress, streakCopy } from "@/lib/xp";
 import { todayISO } from "@/lib/utils";
 import { ThemeToggle, LocaleSwitch } from "@/components/settings-controls";
 import { getServerLocale } from "@/lib/preferences";
-import { t, type TKey } from "@/lib/i18n";
+import { t, type TKey, translateRole } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +65,7 @@ export default async function ProfilePage() {
           <h1 className="text-2xl font-semibold mt-4" style={{ color: def?.color }}>
             {user.display_name}
           </h1>
-          <div className="text-xs text-muted">{def?.role}</div>
+          <div className="text-xs text-muted">{translateRole(user.member_key, locale)}</div>
           <div className="mt-4 w-full max-w-[260px]">
             <div className="flex items-baseline justify-between text-[11px] text-muted">
               <span>{tr("profile.level")} {xp.level}</span>
@@ -77,7 +77,7 @@ export default async function ProfilePage() {
 
         <div className="grid grid-cols-3 gap-3 mt-6">
           <Stat label={tr("profile.tasks_today")} value={(doneTasks ?? []).length} />
-          <Stat label={tr("profile.streak")} value={streakCopy(user.streak_days)} small />
+          <Stat label={tr("profile.streak")} value={streakCopy(user.streak_days, locale)} small />
           <Stat label={tr("profile.xp_total")} value={user.xp} />
         </div>
       </section>

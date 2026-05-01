@@ -3,6 +3,7 @@
 import { MemberAvatar } from "./member-avatar";
 import { getMember, type MemberKey } from "@/lib/members";
 import { cn } from "@/lib/utils";
+import { usePreferences } from "./preferences-provider";
 
 interface Props {
   members: { id: string; member_key: string; display_name: string }[];
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function MemberCarousel({ members, selected, onSelect, showAll = true }: Props) {
+  const { t } = usePreferences();
   return (
     <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5 py-2">
       {showAll && (
@@ -31,7 +33,7 @@ export function MemberCarousel({ members, selected, onSelect, showAll = true }: 
             👥
           </div>
           <div className={cn("text-[11px]", selected === null ? "text-accent" : "text-muted")}>
-            Все
+            {t("family.all")}
           </div>
         </button>
       )}

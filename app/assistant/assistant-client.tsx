@@ -7,6 +7,8 @@ import { Send, Sparkles, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { AgentTyping } from "@/components/agent/AgentTyping";
+import { usePreferences } from "@/components/preferences-provider";
+import type { TKey } from "@/lib/i18n";
 
 interface Msg {
   id: string;
@@ -14,13 +16,13 @@ interface Msg {
   content: string;
 }
 
-const STARTERS = [
-  "Почему сложно проснуться?",
-  "Как работает дофамин?",
-  "Разбор моей недели",
-  "Что сделать сегодня?",
-  "Объясни механизм стресса",
-  "Как улучшить сон?",
+const STARTER_KEYS: TKey[] = [
+  "assistant.starter.wake",
+  "assistant.starter.dopamine",
+  "assistant.starter.week",
+  "assistant.starter.today",
+  "assistant.starter.stress",
+  "assistant.starter.sleep",
 ];
 
 interface InitialMsg {
@@ -35,6 +37,7 @@ export function AssistantClient({
   initialHistory: InitialMsg[];
   memberName: string;
 }) {
+  const { t } = usePreferences();
   const [messages, setMessages] = useState<Msg[]>(
     initialHistory.map((m, i) => ({ id: `init-${i}`, role: m.role, content: m.content })),
   );
@@ -101,7 +104,7 @@ export function AssistantClient({
     } catch (e: any) {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === replyId ? { ...m, content: `Ошибка: ${e.message}` } : m,
+          m.id === replyId ? { ...m, content: `${t("common.error")}: ${e.message}` } : m,
         ),
       );
     } finally {
@@ -112,26 +115,29 @@ export function AssistantClient({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Ассистент</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("assistant.title")}</h1>
         <Link href="/memory" className="text-xs text-accent flex items-center gap-1">
-          <BookOpen size={14} /> Память →
+          <BookOpen size={14} /> {t("memory.title")} →
         </Link>
       </div>
 
       <div ref={scrollRef} className="surface p-3 max-h-[60vh] overflow-y-auto space-y-3">
         {messages.length === 0 && (
           <div>
-            <div className="text-sm text-muted mb-3">Привет, {memberName}. Спроси что-нибудь:</div>
+            <div className="text-sm text-muted mb-3">{t("assistant.greeting")}, {memberName}. {t("assistant.ask_prompt")}</div>
             <div className="grid grid-cols-2 gap-2">
-              {STARTERS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="text-left text-xs px-3 py-2 rounded-xl bg-surface2 hover:bg-accent/20"
-                >
-                  {s}
-                </button>
-              ))}
+              {STARTER_KEYS.map((k) => {
+                const label = t(k);
+                return (
+                  <button
+                    key={k}
+                    onClick={() => send(label)}
+                    className="text-left text-xs px-3 py-2 rounded-xl bg-surface2 hover:bg-accent/20"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -175,7 +181,7 @@ export function AssistantClient({
               send(input);
             }
           }}
-          placeholder="Спроси меня…"
+          placeholder={t("assistant.placeholder")}
           className="min-h-[56px]"
         />
         <Button type="submit" disabled={isStreaming || !input.trim()}>

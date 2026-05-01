@@ -10,7 +10,7 @@ import { ProactiveSlot } from "./proactive-slot";
 import { todayISO } from "@/lib/utils";
 import { getMember } from "@/lib/members";
 import { getServerLocale } from "@/lib/preferences";
-import { t, type TKey } from "@/lib/i18n";
+import { t, type TKey, describeEvent, dateLocale as toDateLocale } from "@/lib/i18n";
 import type { ProactiveMessage as ProactiveMessageT } from "@/lib/agent/types";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   const memberMap = new Map((members ?? []).map((m: any) => [m.id, m]));
   const locale = getServerLocale();
   const tr = (k: TKey) => t(k, locale);
-  const dateLocale = locale === "en" ? "en-US" : "ru-RU";
+  const dateLocale = toDateLocale(locale);
 
   return (
     <AppShell user={user} unread={(notifs ?? []).length}>
@@ -133,8 +133,12 @@ export default async function DashboardPage() {
 
       <SectionHeader title={tr("dash.events")} action={<Link href="/events" className="text-xs text-accent">{tr("dash.history")}</Link>} />
       <div className="space-y-2">
-        {(events ?? []).length === 0 && <div className="surface p-4 text-sm text-muted text-center">{tr("dash.quiet")}</div>}
+        {(events ?? []).filter((e: any) => describeEvent(e, locale)).length === 0 && (
+          <div className="surface p-4 text-sm text-muted text-center">{tr("dash.quiet")}</div>
+        )}
         {(events ?? []).map((e: any) => {
+          const description = describeEvent(e, locale);
+          if (!description) return null;
           const actor: any = e.actor_id ? memberMap.get(e.actor_id) : null;
           const def = getMember(actor?.member_key);
           return (
@@ -145,11 +149,11 @@ export default async function DashboardPage() {
               />
               <div className="flex-1 min-w-0">
                 <div className="text-sm">
-                  <span style={{ color: def?.color ?? "#FFF" }} className="font-medium">{actor?.display_name ?? "Кто-то"}</span>{" "}
-                  <span className="text-muted">{describeEvent(e)}</span>
+                  <span style={{ color: def?.color ?? "#FFF" }} className="font-medium">{actor?.display_name ?? tr("common.someone")}</span>{" "}
+                  <span className="text-muted">{description}</span>
                 </div>
                 <div className="text-[10px] text-muted mt-0.5">
-                  {new Date(e.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(e.created_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
             </div>
@@ -158,25 +162,4 @@ export default async function DashboardPage() {
       </div>
     </AppShell>
   );
-}
-
-function describeEvent(e: any) {
-  switch (e.kind) {
-    case "habit_logged":
-      return `закрыл привычку «${e.payload?.title ?? ""}»`;
-    case "task_completed":
-      return `выполнил задачу «${e.payload?.title ?? ""}» (+${e.payload?.xp ?? 0} XP)`;
-    case "task_created":
-      return `добавил задачу «${e.payload?.title ?? ""}»`;
-    case "reflection_saved":
-      return "записал рефлексию";
-    case "goal_completed":
-      return `достиг цели «${e.payload?.title ?? ""}»`;
-    case "challenge_progress":
-      return `продвинулся в челлендже «${e.payload?.title ?? ""}»`;
-    case "shopping_added":
-      return `добавил в список «${e.payload?.item ?? ""}»`;
-    default:
-      return e.kind;
-  }
 }

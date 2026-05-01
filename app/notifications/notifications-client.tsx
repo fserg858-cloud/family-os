@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { NotificationItem } from "@/components/notification-item";
+import { usePreferences } from "@/components/preferences-provider";
 
 interface Notif {
   id: string;
@@ -33,6 +34,7 @@ export function NotificationsClient({
   initial: Notif[];
   members: Member[];
 }) {
+  const { t } = usePreferences();
   const [items, setItems] = useState<Notif[]>(initial);
   const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
@@ -56,14 +58,14 @@ export function NotificationsClient({
     <div className="space-y-6">
       {items.length === 0 && (
         <div className="surface p-6 text-center text-sm text-muted">
-          Уведомлений пока нет
+          {t("notifications.empty")}
         </div>
       )}
 
       {today.length > 0 && (
         <section>
           <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-            Сегодня
+            {t("time.today")}
           </h3>
           <div className="space-y-2">
             {today.map((n, i) => {
@@ -92,7 +94,7 @@ export function NotificationsClient({
       {earlier.length > 0 && (
         <section>
           <h3 className="text-[13px] uppercase tracking-[0.16em] text-muted font-medium mb-3">
-            Ранее
+            {t("time.earlier")}
           </h3>
           <div className="space-y-2">
             {earlier.map((n) => {

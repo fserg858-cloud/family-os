@@ -19,7 +19,14 @@ export function xpProgress(xp: number) {
   return { level: lvl, into, max: XP_PER_LEVEL, percent: Math.min(100, (into / XP_PER_LEVEL) * 100) };
 }
 
-export function streakCopy(days: number) {
+import type { Locale } from "./i18n";
+
+export function streakCopy(days: number, locale: Locale = "ru") {
+  if (locale === "en") {
+    if (days <= 0) return "No streak";
+    if (days === 1) return "1 day in a row";
+    return `${days} days in a row`;
+  }
   if (days <= 0) return "Нет серии";
   if (days === 1) return "1 день подряд";
   if (days < 5) return `${days} дня подряд`;
